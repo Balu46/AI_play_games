@@ -1,4 +1,5 @@
-FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+FROM python:3.12-slim
+# dsa
 
 WORKDIR /train
 
@@ -8,8 +9,8 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-ENV port=8080
+# ENV port=8080
 
-EXPOSE 8080
+# EXPOSE 8080
 
 CMD ["python3","train.py"]

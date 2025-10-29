@@ -1,5 +1,7 @@
-gymnasium==0.29.1
-numpy==1.26.4
-torch==2.2.0
-pandas==2.2.1
-matplotlib==3.8.2
+gymnasium
+swig
+gymnasium[box2d]
+torch
+numpy
+matplotlib
+pandas
