@@ -1,9 +1,16 @@
 FROM python:3.12-slim
-# dsa
 
 WORKDIR /train
 
 COPY . /train
+    
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    swig \
+    cmake \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
 
 RUN pip install -r requirements.txt
 

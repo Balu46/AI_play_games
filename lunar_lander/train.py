@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 
 # # env.close()
 
-N_GAMES_FOR_TRANING = 300
+N_GAMES_FOR_TRANING = 5000
 
 LOAD_BEST_MODEL = True
 
@@ -61,6 +61,7 @@ class DeepQNetwork(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
         self.device = T.device('cuda' if T.cuda.is_available() else 'cpu')
+        print(f"Using device: {self.device}")
         self.to(self.device)
 
     def forward(self, state):
@@ -196,8 +197,8 @@ def traning():
     The training process involves choosing actions, receiving rewards, and updating the agent's knowledge.
     """
     # Initialize the network
-    # env = gym.make("LunarLander-v3")
-    env = gym.make("LunarLander-v3", render_mode="human")
+    env = gym.make("LunarLander-v3")
+    # env = gym.make("LunarLander-v3", render_mode="human")
 
     n_actions = env.action_space.n                  # 4
     input_dims = int(np.prod(env.observation_space.shape))  # 8
