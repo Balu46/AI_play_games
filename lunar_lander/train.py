@@ -241,7 +241,7 @@ def traning():
         print(f'episode {i} score {score:.2f} average score {avg_score:.2f} epsilon {agent.epsilon:.2f}')
 
     # trzymaj jedną spójną ścieżkę do modelu
-    agent.save_best_model('best_model.pth')
+    agent.save_best_model('lunar_lander/models/best_model.pth')
     print('Best model saved')
     
     # --- ZAPIS LOGU ---
@@ -251,7 +251,7 @@ def traning():
         "avg100": pd.Series(scores).rolling(100).mean(),
         "epsilon": eps_history,
     })
-    out_csv = "training_log.csv"
+    out_csv = "lunar_lander/debug_out/training_log.csv"
     df.to_csv(out_csv, index=False)
     print(f"Zapisano log: {out_csv}")
 
@@ -264,7 +264,7 @@ def traning():
     plt.ylabel("Score")
     plt.legend()
     plt.tight_layout()
-    plt.savefig("score_avg100.png", dpi=150)
+    plt.savefig("lunar_lander/debug_out/score_avg100.png", dpi=150)
 
     # 2) Epsilon
     plt.figure()
@@ -273,7 +273,7 @@ def traning():
     plt.ylabel("Epsilon")
     plt.legend()
     plt.tight_layout()
-    plt.savefig("epsilon.png", dpi=150)
+    plt.savefig("lunar_lander/debug_out/epsilon.png", dpi=150)
 
     print("Wykresy zapisane jako: score_avg100.png oraz epsilon.png")
           

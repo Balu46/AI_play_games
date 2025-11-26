@@ -4,7 +4,7 @@ import torch as T
 
 from train import DeepQNetwork 
 
-MODEL_PATH = "best_model.pth"
+MODEL_PATH = "lunar_lander/models/best_model.pth"
 
 def load_policy(model_path, n_actions, input_dims, lr=1e-4):
     net = DeepQNetwork(lr=lr, input_dims=input_dims, fc1_dims=256, fc2_dims=256, n_actions=n_actions)
