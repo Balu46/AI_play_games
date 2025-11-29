@@ -1,7 +1,0 @@
-gymnasium
-swig
-gymnasium[box2d]
-torch
-numpy
-matplotlib
-pandas
