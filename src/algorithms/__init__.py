@@ -1,1 +1,1 @@
-from .DNQ import *
+from .DQN import *
