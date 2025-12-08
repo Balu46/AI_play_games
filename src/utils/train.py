@@ -1,100 +1,129 @@
 import gymnasium as gym
-import numpy as np
-import torch as T
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
 import os
-import pandas as pd
-import matplotlib.pyplot as plt
-from src.algorithms.DQN import Agent
+import torch as T
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.callbacks import StopTrainingOnMaxEpisodes, EvalCallback, CallbackList
 
-N_GAMES_FOR_TRANING = 5000
+from src.utils.discrete_actions_wrapper import DiscreteActionsWrapper
 
-def traning(agent : Agent, n_games: int = N_GAMES_FOR_TRANING, env : gym.Env = None):
+from src.algorithms.DNQ.DNQ_baseline import DQN
+from src.algorithms.A2C.A2C import A2C
+from src.algorithms.PPO.PPO import PPO
+
+# Map algorithm names to classes
+ALGO_MAP = {
+    "dqn": DQN,
+    "a2c": A2C,
+    "ppo": PPO,
+}
+
+# Map simple environment names to Gym IDs
+ENV_MAP = {
+    "lunar_lander": "LunarLander-v3",
+    "car_racing": "CarRacing-v3",
+    "cart_pole": "CartPole-v1",
+}
+
+def train(algo_name: str, env_name: str, total_timesteps: int = None, total_episodes: int = None):
     """
-    Function to train the sensor network.
-    This function initializes the sensor network and runs a series of training episodes.
-    Each episode consists of a series of time steps where the sensors interact with the environment.
-    The training process involves choosing actions, receiving rewards, and updating the agent's knowledge.
+    Unified training function for PPO, A2C, and DQN.
     """
-    # Initialize the network
-    env = gym.make("LunarLander-v3")
-    # env = gym.make("LunarLander-v3", render_mode="human")
+    if algo_name not in ALGO_MAP:
+        raise ValueError(f"Unknown algorithm: {algo_name}. Available: {list(ALGO_MAP.keys())}")
+    if env_name not in ENV_MAP:
+        raise ValueError(f"Unknown environment: {env_name}. Available: {list(ENV_MAP.keys())}")
 
-    n_actions = env.action_space.n                  # 4
-    input_dims = int(np.prod(env.observation_space.shape))  # 8
+    gym_env_id = ENV_MAP[env_name]
+    print(f"Starting training with {algo_name.upper()} on {gym_env_id}...")
 
-    agent = Agent(gamma=0.99, epsilon=1.0, lr=0.0001,
-                  input_dims=input_dims, batch_size=64, n_actions=n_actions,
-                  eps_end=0.01, eps_dec=1e-5)
+    # Create directories for saving models and logs
+    model_dir = f"{env_name}/models/{algo_name}"
+    log_dir = f"{env_name}/logs/{algo_name}"
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
 
-    scores, eps_history = [], []
-    best_score = -np.inf
+    # Environment setup
+    # Wrap continuous action spaces for DQN (requires discrete actions)
+    if algo_name == "dqn" and gym_env_id == "CarRacing-v3":
+        env = make_vec_env(gym_env_id, n_envs=1, seed=0, vec_env_cls=DummyVecEnv,
+                          wrapper_class=DiscreteActionsWrapper)
+        eval_env = make_vec_env(gym_env_id, n_envs=1, seed=42, vec_env_cls=DummyVecEnv,
+                               wrapper_class=DiscreteActionsWrapper)
+    else:
+        env = make_vec_env(gym_env_id, n_envs=1, seed=0, vec_env_cls=DummyVecEnv)
+        eval_env = make_vec_env(gym_env_id, n_envs=1, seed=42, vec_env_cls=DummyVecEnv)
 
-    for i in range(n_games):
-        t = 0
-        score = 0.0
-        observation, info = env.reset()     
-        done = False
-
-        while not done:
-            action = agent.choose_action(observation)
-            observation_, reward, terminated, truncated, info = env.step(action)
-
-            done = terminated or truncated  
-            agent.store_transition(observation, action, reward, observation_, done)
-            agent.learn()
-
-            observation = observation_
-            score += reward
-            t += 1
-
-        scores.append(score)
-        eps_history.append(agent.epsilon)
-
-        avg_score = np.mean(scores[-100:])
-        if score > best_score:
-            best_score = score
-            agent.update_best_model()
-
-        print(f'episode {i} score {score:.2f} average score {avg_score:.2f} epsilon {agent.epsilon:.2f}')
-
-    # trzymaj jedną spójną ścieżkę do modelu
-    agent.save_best_model('lunar_lander/models/best_model.pth')
-    print('Best model saved')
+    # Select Policy Type
+    if "CarRacing" in gym_env_id:
+        policy_type = "CnnPolicy"
+    else:
+        policy_type = "MlpPolicy"
     
-    # --- ZAPIS LOGU ---
-    df = pd.DataFrame({
-        "episode": np.arange(1, len(scores) + 1),
-        "score": scores,
-        "avg100": pd.Series(scores).rolling(100).mean(),
-        "epsilon": eps_history,
-    })
-    out_csv = "lunar_lander/debug_out/training_log.csv"
-    df.to_csv(out_csv, index=False)
-    print(f"Zapisano log: {out_csv}")
+    print(f"Using policy: {policy_type}")
 
-    # --- WYKESY ---
-    # 1) Wynik per epizod + średnia krocząca 100
-    plt.figure()
-    plt.plot(df["episode"], df["score"], label="score")
-    plt.plot(df["episode"], df["avg100"], label="avg100")
-    plt.xlabel("Episode")
-    plt.ylabel("Score")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("lunar_lander/debug_out/score_avg100.png", dpi=150)
+    # Initialize Agent
+    AlgoClass = ALGO_MAP[algo_name]
+    
+    # DQN-specific parameters
+    agent_kwargs = {
+        "policy": policy_type,
+        "env": env,
+        "verbose": 1,
+        "tensorboard_log": log_dir,
+        "device": "auto"
+    }
+    
+    # Reduce buffer size for image-based envs (saves memory)
+    if algo_name == "dqn" and policy_type == "CnnPolicy":
+        agent_kwargs["buffer_size"] = 50_000  # Default is 1M, too large for images
+    
+    agent = AlgoClass(**agent_kwargs)
 
-    # 2) Epsilon
-    plt.figure()
-    plt.plot(df["episode"], df["epsilon"], label="epsilon")
-    plt.xlabel("Episode")
-    plt.ylabel("Epsilon")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("lunar_lander/debug_out/epsilon.png", dpi=150)
+    # Callbacks
+    callbacks = []
+    
+    # Eval Callback - Saves the best model
+    eval_callback = EvalCallback(
+        eval_env,
+        best_model_save_path=model_dir,
+        log_path=model_dir,
+        eval_freq=10000,
+        deterministic=True,
+        render=False,
+        verbose=1
+    )
+    callbacks.append(eval_callback)
 
-    print("Wykresy zapisane jako: score_avg100.png oraz epsilon.png")
-          
+    # Episode Limit Callback
+    if total_episodes is not None:
+        print(f"Training for {total_episodes} episodes (ignoring timesteps limit)...")
+        stop_train_callback = StopTrainingOnMaxEpisodes(max_episodes=total_episodes, verbose=1)
+        callbacks.append(stop_train_callback)
+        
+        if total_timesteps is None:
+            total_timesteps = 10_000_000 # High number to ensure episodes limit is hit
+    else:
+        if total_timesteps is None:
+             total_timesteps = 100000
+        print(f"Training for {total_timesteps} timesteps...")
+    
+    # Combine callbacks
+    callback = CallbackList(callbacks)
+
+    agent.learn(total_timesteps=total_timesteps, callback=callback, progress_bar=True)
+
+    # Ensure existence of best_model.zip
+    best_model_path = os.path.join(model_dir, "best_model.zip")
+    if not os.path.exists(best_model_path):
+        print(f"Warning: Best model not found (eval callback might not have triggered). Saving final model as best model.")
+        agent.save(best_model_path)
+    else:
+        print(f"Best model already saved at {best_model_path}")
+
+    # Removed explicit saving of final_model.zip to satisfy request for single model only.
+    
+    env.close()
+    eval_env.close()
+
         
