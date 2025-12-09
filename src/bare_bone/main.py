@@ -1,0 +1,61 @@
+import json
+import os
+import argparse
+from src.bare_bone.utils.train import train
+from src.bare_bone.visualization.visualize import visualize
+from src.bare_bone.visualization.plot import plot_training
+
+CONFIG_PATH = "config.json"
+
+def load_config(path):
+    if not os.path.exists(path):
+        print(f"Config file not found at {path}")
+        return None
+    with open(path, "r") as f:
+        return json.load(f)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="RL Agent Manager")
+    parser.add_argument("--mode", type=str, default="train", choices=["train", "visualize", "plot"], help="Operation mode")
+    parser.add_argument("--config", type=str, default=CONFIG_PATH, help="Path to configuration file")
+    
+    # Optional overrides
+    parser.add_argument("--algo", type=str, help="Algorithm override (e.g. ppo)")
+    parser.add_argument("--env", type=str, help="Environment override (e.g. lunar_lander)")
+    
+    args = parser.parse_args()
+
+    # Load defaults from config
+    config = load_config(args.config)
+    
+    # Determine settings (CLI args take precedence)
+    game = args.env if args.env else (config.get("game") if config else None)
+    
+    if args.mode == "train":
+        if not config:
+            print("Config is required for training mode (unless fully overridden, but config is safer)")
+            exit(1)
+            
+        algorithms = config.get("algorithms", [])
+        # Default to 100k steps if neither is provided in config
+        timesteps = config.get("total_timesteps")
+        episodes = config.get("total_episodes")
+        
+        target = f"{episodes} episodes" if episodes else f"{timesteps or 100000} steps"
+        print(f"Training on {game} for {target}...")
+        
+        for algo in algorithms:
+            print(f"\n--- Starting {algo.upper()} ---")
+            train(algo, game, total_timesteps=timesteps, total_episodes=episodes)
+
+    elif args.mode == "visualize":
+        if not game:
+            print("Visualization requires --env (or config game)")
+            exit(1)
+        visualize(args.algo, game)
+
+    elif args.mode == "plot":
+        if not game:
+            print("Plotting requires --env (or config game)")
+            exit(1)
+        plot_training(game)

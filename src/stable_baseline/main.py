@@ -1,9 +1,9 @@
 import json
 import os
 import argparse
-from src.utils.train import train
-from src.visualization.visualize import visualize
-from src.visualization.plot import plot_training
+from src.stable_baseline.utils.train import train
+from src.stable_baseline.visualization.visualize import visualize
+from src.stable_baseline.visualization.plot import plot_training
 
 CONFIG_PATH = "config.json"
 

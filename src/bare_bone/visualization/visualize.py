@@ -18,6 +18,7 @@ ALGO_MAP = {
 ENV_MAP = {
     "lunar_lander": "LunarLander-v3",
     "car_racing": "CarRacing-v3",
+    "cart_pole": "CartPole-v1",
 }
 
 def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: int = 5):
@@ -48,11 +49,7 @@ def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: i
 
         print(f"\n--- Running {algo.upper()} ---")
         
-        # if "CarRacing" in gym_env_id:
-        #     env = make_vec_env(gym_env_id, n_envs=1, seed=0, wrapper_class=DiscreteActionsWrapper)
-        # else:
-        #     env = make_vec_env(gym_env_id, n_envs=1, seed=0)
-        
+
         # Initialize environment with render_mode='human'
         env = gym.make(gym_env_id, render_mode="human")
         if "CarRacing" in gym_env_id and algo == "dqn":

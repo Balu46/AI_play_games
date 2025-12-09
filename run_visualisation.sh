@@ -21,8 +21,8 @@ echo ""
 ALGO=${1:-$DEFAULT_ALGO}
 ENV=${2:-$DEFAULT_ENV}
 
-echo "Plotting $ENV..."
-python src/main.py --mode plot --env $ENV
+# echo "Plotting $ENV..."
+# python src/stable_baseline/main.py --mode plot --env $ENV
 
 echo "Visualizing $ALGO on $ENV..."
-python src/main.py --mode visualize --algo $ALGO --env $ENV
+python src/stable_baseline/main.py --mode visualize --algo $ALGO --env $ENV
