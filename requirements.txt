@@ -8,3 +8,5 @@ matplotlib==3.10.7
 swig==4.3.1.post0
 tqdm==4.66.1
 rich==13.5.0
+optuna
+optuna-dashboard

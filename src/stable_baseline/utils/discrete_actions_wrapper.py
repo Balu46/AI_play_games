@@ -24,7 +24,7 @@ class DiscreteActionsWrapper(gym.ActionWrapper):
             np.array([-1.0, 0.0, 0.0], dtype=np.float32),  # 1: Turn left
             np.array([1.0, 0.0, 0.0], dtype=np.float32),   # 2: Turn right
             np.array([0.0, 1.0, 0.0], dtype=np.float32),   # 3: Gas (accelerate)
-            np.array([0.0, 0.0, 0.8], dtype=np.float32),   # 4: Brake
+            np.array([0.0, 0.0, 1.0], dtype=np.float32),   # 4: Brake
         ]
         
         # Override action space to discrete

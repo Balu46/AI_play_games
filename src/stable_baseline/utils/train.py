@@ -57,21 +57,51 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     # Select Policy Type
     if "CarRacing" in gym_env_id:
         policy_type = "CnnPolicy"
+ 
     else:
         policy_type = "MlpPolicy"
-    
+
     print(f"Using policy: {policy_type}")
 
     # Initialize Agent
     AlgoClass = ALGO_MAP[algo_name]
+
+    if algo_name == "dqn":
+        # DQN: prosta lista warstw dla Q-network
+        policy_kwargs = dict(
+            activation_fn=T.nn.ReLU,
+            net_arch=[256, 256],
+            optimizer_class=T.optim.AdamW,
+            optimizer_kwargs=dict(
+                weight_decay=1e-5
+            ),
+            normalize_images=True
+        )
+    else:
+        # PPO / A2C: osobne heady dla policy (pi) i value (vf)
+        policy_kwargs = dict(
+            activation_fn=T.nn.ReLU,
+            net_arch=[
+                dict(
+                    pi=[256, 256],
+                    vf=[256, 256],
+                )
+            ],
+            optimizer_class=T.optim.AdamW,
+            optimizer_kwargs=dict(
+                weight_decay=1e-5
+            ),
+            normalize_images=True
+        )
     
-    # DQN-specific parameters
     agent_kwargs = {
         "policy": policy_type,
         "env": env,
         "verbose": 1,
         "tensorboard_log": log_dir,
-        "device": "auto"
+        "device": "auto",
+        "policy_kwargs": policy_kwargs,
+        "learning_rate": 3e-4,
     }
     
     # Reduce buffer size for image-based envs (saves memory)
