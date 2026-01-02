@@ -6,5 +6,5 @@
         "a2c"
     ],
     "total_timesteps": null,
-    "total_episodes": 10
+    "total_episodes": 10000
 }

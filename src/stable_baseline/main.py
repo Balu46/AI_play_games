@@ -4,6 +4,8 @@ import argparse
 from src.stable_baseline.utils.train import train
 from src.stable_baseline.visualization.visualize import visualize
 from src.stable_baseline.visualization.plot import plot_training
+from src.stable_baseline.optimize import run_optimization
+import torch
 
 CONFIG_PATH = "config.json"
 
@@ -15,14 +17,20 @@ def load_config(path):
         return json.load(f)
 
 if __name__ == "__main__":
+    print(f"device : {'cuda' if torch.cuda.is_available() else 'cpu'}")
     parser = argparse.ArgumentParser(description="RL Agent Manager")
-    parser.add_argument("--mode", type=str, default="train", choices=["train", "visualize", "plot"], help="Operation mode")
+    parser.add_argument("--mode", type=str, default="train", choices=["train", "visualize", "plot", "optimize"], help="Operation mode")
     parser.add_argument("--config", type=str, default=CONFIG_PATH, help="Path to configuration file")
     
     # Optional overrides
     parser.add_argument("--algo", type=str, help="Algorithm override (e.g. ppo)")
     parser.add_argument("--env", type=str, help="Environment override (e.g. lunar_lander)")
     
+    # Optimization specific
+    parser.add_argument("--n-trials", type=int, default=10, help="Number of trials for optimization")
+    parser.add_argument("--timesteps", type=int, default=30000, help="Timesteps per trial for optimization")
+    parser.add_argument("--study-name", type=str, default="rl_optimization", help="Study name for optimization")
+
     args = parser.parse_args()
 
     # Load defaults from config
@@ -46,7 +54,19 @@ if __name__ == "__main__":
         
         for algo in algorithms:
             print(f"\n--- Starting {algo.upper()} ---")
-            train(algo, game, total_timesteps=timesteps, total_episodes=episodes)
+            
+            # Check for optimized hyperparameters
+            hyperparams = None
+            optimization_path = os.path.join(game, "optimization", algo, "best_params.json")
+            if os.path.exists(optimization_path):
+                print(f"Found optimized hyperparameters at {optimization_path}")
+                try:
+                    with open(optimization_path, "r") as f:
+                        hyperparams = json.load(f)
+                except Exception as e:
+                    print(f"Error loading optimized hyperparameters: {e}")
+            
+            train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams)
 
     elif args.mode == "visualize":
         if not game:
@@ -59,3 +79,9 @@ if __name__ == "__main__":
             print("Plotting requires --env (or config game)")
             exit(1)
         plot_training(game)
+
+    elif args.mode == "optimize":
+        if not game or not args.algo:
+            print("Optimization requires --env and --algo")
+            exit(1)
+        run_optimization(args)
