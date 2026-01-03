@@ -116,14 +116,3 @@ def run_optimization(args):
         
     print(f"Best parameters saved to {best_params_file}")
 
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(description="Optuna Hyperparameter Optimization")
-#     parser.add_argument("--algo", type=str, required=True, help="Algorithm to optimize (dqn, ppo, a2c)")
-#     parser.add_argument("--env", type=str, required=True, help="Environment name (car_racing, lunar_lander, cart_pole)")
-#     parser.add_argument("--n-trials", type=int, default=10, help="Number of trials")
-#     parser.add_argument("--timesteps", type=int, default=30000, help="Timesteps per trial")
-#     parser.add_argument("--study-name", type=str, default="rl_optimization", help="Study name")
-    
-#     args = parser.parse_args()
-    
-#     run_optimization(args)

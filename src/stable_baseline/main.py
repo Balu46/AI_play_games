@@ -37,51 +37,59 @@ if __name__ == "__main__":
     config = load_config(args.config)
     
     # Determine settings (CLI args take precedence)
-    game = args.env if args.env else (config.get("game") if config else None)
+    games = args.env if args.env else (config.get("game") if config else None)
+    if games is "all" : 
+        games = ["car_racing", "lunar_lander", "cart_pole"]
+    else:
+        games = [games]
     
     if args.mode == "train":
         if not config:
             print("Config is required for training mode (unless fully overridden, but config is safer)")
             exit(1)
+        for game in games:
+
+            algorithms = config.get("algorithms", [])
+            # Default to 100k steps if neither is provided in config
+            timesteps = config.get("total_timesteps")
+            episodes = config.get("total_episodes")
             
-        algorithms = config.get("algorithms", [])
-        # Default to 100k steps if neither is provided in config
-        timesteps = config.get("total_timesteps")
-        episodes = config.get("total_episodes")
-        
-        target = f"{episodes} episodes" if episodes else f"{timesteps or 100000} steps"
-        print(f"Training on {game} for {target}...")
-        
-        for algo in algorithms:
-            print(f"\n--- Starting {algo.upper()} ---")
+            target = f"{episodes} episodes" if episodes else f"{timesteps or 100000} steps"
+            print(f"Training on {game} for {target}...")
             
-            # Check for optimized hyperparameters
-            hyperparams = None
-            optimization_path = os.path.join(game, "optimization", algo, "best_params.json")
-            if os.path.exists(optimization_path):
-                print(f"Found optimized hyperparameters at {optimization_path}")
-                try:
-                    with open(optimization_path, "r") as f:
-                        hyperparams = json.load(f)
-                except Exception as e:
-                    print(f"Error loading optimized hyperparameters: {e}")
-            
-            train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams)
+            for algo in algorithms:
+                print(f"\n--- Starting {algo.upper()} ---")
+                
+                # Check for optimized hyperparameters
+                hyperparams = None  
+                optimization_path = os.path.join(game, "optimization", algo, "best_params.json")
+                if os.path.exists(optimization_path):
+                    print(f"Found optimized hyperparameters at {optimization_path}")
+                    try:
+                        with open(optimization_path, "r") as f:
+                            hyperparams = json.load(f)
+                    except Exception as e:
+                        print(f"Error loading optimized hyperparameters: {e}")
+                
+                train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams)
 
     elif args.mode == "visualize":
-        if not game:
-            print("Visualization requires --env (or config game)")
-            exit(1)
-        visualize(args.algo, game)
+        for game in games:
+            if not game:
+                print("Visualization requires --env (or config game)")
+                exit(1)
+            visualize(args.algo, game)
 
     elif args.mode == "plot":
-        if not game:
-            print("Plotting requires --env (or config game)")
-            exit(1)
-        plot_training(game)
+        for game in games:
+            if not game:
+                print("Plotting requires --env (or config game)")
+                exit(1)
+            plot_training(game)
 
     elif args.mode == "optimize":
-        if not game or not args.algo:
-            print("Optimization requires --env and --algo")
-            exit(1)
-        run_optimization(args)
+        for game in games:
+            if not game or not args.algo:
+                print("Optimization requires --env and --algo")
+                exit(1)
+            run_optimization(args)

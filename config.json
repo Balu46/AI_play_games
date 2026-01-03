@@ -1,10 +1,10 @@
 {
-    "game": "car_racing",
+    "game": "all",
     "algorithms": [
         "dqn",
         "ppo",
         "a2c"
     ],
-    "total_timesteps": null,
-    "total_episodes": 10000
+    "total_timesteps": 1000000,
+    "total_episodes": null
 }
