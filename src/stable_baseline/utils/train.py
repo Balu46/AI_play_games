@@ -3,7 +3,7 @@ import os
 import torch as T
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
-from stable_baselines3.common.callbacks import StopTrainingOnMaxEpisodes, EvalCallback, CallbackList
+from stable_baselines3.common.callbacks import StopTrainingOnMaxEpisodes, EvalCallback, CallbackList, StopTrainingOnNoModelImprovement
 
 from src.stable_baseline.utils.discrete_actions_wrapper import DiscreteActionsWrapper
 
@@ -25,7 +25,7 @@ ENV_MAP = {
     "cart_pole": "CartPole-v1",
 }
 
-def train(algo_name: str, env_name: str, total_timesteps: int = None, total_episodes: int = None, hyperparams: dict = None):
+def train(algo_name: str, env_name: str, total_timesteps: int = None, total_episodes: int = None, hyperparams: dict = None, patience: int = 5):
     """
     Unified training function for PPO, A2C, and DQN.
     """
@@ -112,7 +112,8 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
             weight_decay = hyperparams["weight_decay"]
 
         # Extract common params
-        if "batch_size" in hyperparams: kwargs["batch_size"] = hyperparams["batch_size"]
+        if "batch_size" in hyperparams and algo_name != "a2c":
+             kwargs["batch_size"] = hyperparams["batch_size"]
         
         # DQN specific
         if algo_name == "dqn":
@@ -178,12 +179,16 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     # Callbacks
     callbacks = []
     
+    # Early Stopping Callback
+    stop_callback = StopTrainingOnNoModelImprovement(max_no_improvement_evals=patience, verbose=1)
+
     # Eval Callback - Saves the best model
     eval_callback = EvalCallback(
         eval_env,
         best_model_save_path=model_dir,
         log_path=model_dir,
         eval_freq=10000 if not hyperparams else 2000, # More frequent eval during optimization
+        callback_after_eval=stop_callback, # Add early stopping here
         deterministic=True,
         render=False,
         verbose=1

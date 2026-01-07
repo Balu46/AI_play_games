@@ -1,0 +1,322 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{graphicx}
+\usepackage{bookmark}
+\usepackage{amsmath}
+\usepackage{subcaption}
+
+\title{Optymalizacja Agentów RL w Środowiskach Gier}
+\subtitle{Teoria i Praktyka: DQN, PPO, A2C}
+\author{Jan}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Plan Prezentacji}
+    \tableofcontents
+\end{frame}
+
+\section{Definicja Problemu}
+\begin{frame}{1. Definicja Problemu i Cel}
+    \textbf{Cel Projektu:} \\
+    Stworzenie i optymalizacja agentów Uczenia ze Wzmocnieniem (RL) dla środowisk Gymnasium (\texttt{LunarLander}, \texttt{CarRacing}, \texttt{CartPole}).
+
+    \vspace{0.5cm}
+    \textbf{Wyzwanie:} \\
+    Znalezienie balansu między stabilnością a szybkością uczenia poprzez:
+    \begin{itemize}
+        \item Dobór odpowiedniego algorytmu (Model Selection).
+        \item Automatyczną optymalizację hiperparametrów (Optuna).
+    \end{itemize}
+\end{frame}
+
+\section{Podstawy Teoretyczne}
+\begin{frame}{Podstawy Teoretyczne RL}
+    \textbf{Proces Decyzyjny Markova (MDP):}
+    Agent w stanie $s_t$ podejmuje akcję $a_t$, otrzymuje nagrodę $r_t$ i przechodzi do stanu $s_{t+1}$.
+    
+    \vspace{0.5cm}
+    \textbf{Cel Agenta:}
+    Maksymalizacja oczekiwanej sumy zdyskontowanych nagród:
+    $$ G_t = \sum_{k=0}^{\infty} \gamma^k r_{t+k+1} $$
+    gdzie $\gamma \in [0, 1]$ to czynnik dyskontujący (discount factor).
+\end{frame}
+
+\section{Szczegółowa Teoria Modeli}
+
+\subsection{DQN (Deep Q-Network)}
+\begin{frame}{Deep Q-Network (DQN) - Teoria}
+    \textbf{Typ:} Off-policy, Value-based, Model-free.
+    
+    \textbf{Koncepcja:}
+    DQN aproksymuje funkcję wartości $Q(s, a)$ za pomocą sieci neuronowej, dążąc do spełnienia równania Bellmana:
+    $$ Q^*(s, a) = \mathbb{E} [r + \gamma \max_{a'} Q^*(s', a')] $$
+
+    \textbf{Kluczowe mechanizmy stabilizujące:}
+    \begin{enumerate}
+        \item \textbf{Experience Replay (Bufor Doświadczeń):}
+        Przechowuje prześcia $(s, a, r, s')$ i losuje je do treningu (batch), co łamie korelację czasową danych.
+        \item \textbf{Target Network (Sieć Docelowa):}
+        Osobna sieć $\hat{Q}$ z zamrożonymi wagami służy do obliczania celu, co zapobiega oscylacjom ("goniący króliczek").
+    \end{enumerate}
+    
+    \textbf{Zastosowanie:} Idealny do akcji dyskretnych (\texttt{CartPole}, \texttt{LunarLander}).
+\end{frame}
+
+\subsection{A2C (Advantage Actor-Critic)}
+\begin{frame}{Advantage Actor-Critic (A2C) - Teoria}
+    \textbf{Typ:} On-policy, Actor-Critic, Hybrid.
+    
+    \textbf{Architektura:}
+    Składa się z dwóch części (często współdzielących wagi początkowe):
+    \begin{itemize}
+        \item \textbf{Actor (Aktor):} Uczy się polityki $\pi(a|s)$ (jak działać).
+        \item \textbf{Critic (Krytyk):} Ocenia wartość stanu $V(s)$ (jak dobra jest sytuacja).
+    \end{itemize}
+
+    \textbf{Funkcja Advantage (Przewagi):}
+    $$ A(s, a) = Q(s, a) - V(s) \approx r + \gamma V(s') - V(s) $$
+    Mówi nam, "o ile lepiej" było podjąć akcję $a$ niż średnio w tym stanie.
+    
+    \textbf{Cechy:}
+    \begin{itemize}
+        \item Aktualizacje synchroniczne na wielu równoległych środowiskach.
+        \item Mniejsza wariancja gradientów niż w czystym Policy Gradient.
+    \end{itemize}
+\end{frame}
+
+\subsection{PPO (Proximal Policy Optimization)}
+\begin{frame}{Proximal Policy Optimization (PPO) - Teoria}
+    \textbf{Typ:} On-policy, Actor-Critic.
+    
+    \textbf{Problem:}
+    Tradycyjne metody Policy Gradient są bardzo wrażliwe na zbyt duży krok uczenia (learning rate), co może zniszczyć politykę.
+    
+    \textbf{Rozwiązanie - Clipped Objective:}
+    PPO ogranicza zmianę polityki w jednym kroku. Definiujemy stosunek prawdopodobieństw $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$. Funkcja celu to:
+    $$ L^{CLIP}(\theta) = \hat{\mathbb{E}} [\min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)] $$
+    
+    \textbf{Interpretacja:}
+    Jeśli zmiana polityki jest zbyt drastyczna (poza przedział $[1-\epsilon, 1+\epsilon]$), aktualizacja jest "przycinana". To gwarantuje monotoniczną poprawę i stabilność treningu.
+\end{frame}
+
+\section{Kluczowe Hiperparametry}
+\begin{frame}{Kluczowe Hiperparametry - Wspólne}
+    Wspólne parametry optymalizowane dla wszystkich modeli (Optuna):
+    \begin{itemize}
+        \item \textbf{Learning Rate (LR):} Szybkość uczenia ($10^{-5}$ do $10^{-2}$). Zbyt duży destabilizuje, zbyt mały spowalnia.
+        \item \textbf{Gamma ($\gamma$):} Czynnik dyskontujący ($0.9$ do $0.9999$). Określa, jak ważne są przyszłe nagrody (krótkowzroczność vs dalekowzroczność).
+        \item \textbf{Batch Size:} Ilość próbek w jednej aktualizacji gradientu ($16$ do $512$).
+        \item \textbf{Architektura Sieci:} Rozmiar warstw ukrytych (Tiny, Small, Medium).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Kluczowe Hiperparametry - Specyficzne}
+    \textbf{DQN (Deep Q-Network):}
+    \begin{itemize}
+        \item \textbf{Target Update Interval:} Częstotliwość aktualizacji sieci docelowej (1000-20000 kroków). Kluczowe dla stabilności.
+        \item \textbf{Exploration Fraction:} Jak długo zmniejszać epsilon (eksplorację).
+    \end{itemize}
+
+    \vspace{0.5cm}
+    \textbf{PPO / A2C (Actor-Critic):}
+    \begin{itemize}
+        \item \textbf{Entropy Coefficient:} Premia za entropię. Zapobiega przedwczesnej zbieżności do suboptymalnej polityki.
+        \item \textbf{GAE Lambda ($\lambda$):} Balans między bias a wariancją w estymacji przewagi.
+        \item \textbf{N Steps:} Długość trajektorii zbieranej przed aktualizacją.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Optymalizacja w Praktyce - LunarLander (Case Study)}
+    Analiza zmian hiperparametrów po optymalizacji (Default vs Optimized):
+    \begin{table}[]
+        \tiny
+        \begin{tabular}{|l|l|l|l|l|}
+        \hline
+        \textbf{Parametr} & \textbf{Default} & \textbf{PPO (Opt)} & \textbf{DQN (Opt)} & \textbf{A2C (Opt)} \\ \hline
+        Learning Rate & $3 \cdot 10^{-4}$ & $\mathbf{1.1 \cdot 10^{-3}}$ & $\mathbf{8.2 \cdot 10^{-3}}$ & $\mathbf{3.3 \cdot 10^{-3}}$ \\ \hline
+        Gamma ($\gamma$) & $0.99$ & $0.90$ & $0.99$ & $0.93$ \\ \hline
+        Net Arch & Medium & Medium & \textbf{Tiny} & \textbf{Tiny} \\ \hline
+        Activation & ReLU & \textbf{ELU} & ReLU & \textbf{ELU} \\ \hline
+        Ent Coef & $0.0$ & $0.064$ & - & $0.00015$ \\ \hline
+        \end{tabular}
+    \end{table}
+    \textbf{Wnioski:}
+    \begin{itemize}
+        \item Modele preferowały \textbf{wyższy LR} niż domyślny.
+        \item Policy Gradient (PPO, A2C) zyskały na \textbf{mniejszej gammie} (skupienie na bliższych nagrodach).
+        \item Prostsze sieci ("Tiny") wystarczyły dla A2C/DQN.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{LunarLander - Porównanie Algorytmów}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.85\textwidth]{../lunar_lander/debug_out/comparison_rollout_ep_rew_mean.png}
+        \caption{Średnia nagroda w epizodzie dla LunarLander. PPO osiąga najlepsze wyniki.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{LunarLander - PPO Szczegóły}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../lunar_lander/debug_out/ppo_reward.png}
+            \caption{PPO Reward (Szybka zbieżność)}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.45\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../lunar_lander/debug_out/ppo_loss.png}
+            \caption{PPO Loss}
+        \end{subfigure}
+    \end{figure}
+\end{frame}
+
+\section{Porównanie i Wyniki}
+\begin{frame}{Porównanie Algorytmów w Projekcie}
+    \begin{table}[]
+        \begin{tabular}{|l|l|l|l|}
+        \hline
+        \textbf{Cecha} & \textbf{DQN} & \textbf{A2C} & \textbf{PPO} \\ \hline
+        Typ & Off-policy & On-policy & On-policy \\ \hline
+        Akcje & Dyskretne & Dyskretne/Ciągłe & Dyskretne/Ciągłe \\ \hline
+        Stabilność & Średnia & Średnia & \textbf{Wysoka} \\ \hline
+        Sample Eff. & \textbf{Wysoka} (Replay) & Średnia & Niska \\ \hline
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Wyniki Optymalizacji z Optuna}
+    Dla algorytmu PPO w środowisku \texttt{LunarLander}:
+    \begin{itemize}
+        \item Domyślny LR ($3 \cdot 10^{-4}$) $\to$ Zoptymalizowany LR ($1.2 \cdot 10^{-3}$).
+        \item Poprawa średniej nagrody (Mean Reward): $-150 \to +230$.
+        \item Znaczenie entropii (\texttt{ent\_coef}): Wyższa wartość na początku pomogła w eksploracji trudnych lądowań.
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{CartPole - Porównanie Algorytmów}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.85\textwidth]{../cart_pole/debug_out/comparison_rollout_ep_rew_mean.png}
+        \caption{Średnia nagroda w epizodzie (Rollout Ep Reward Mean) dla algorytmów PPO, A2C i DQN.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{CartPole - Szczegóły Treningu}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_reward.png}
+            \caption{DQN Reward}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../cart_pole/debug_out/a2c_reward.png}
+            \caption{A2C Reward}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../cart_pole/debug_out/ppo_reward.png}
+            \caption{PPO Reward}
+        \end{subfigure}
+
+        \vspace{0.5cm}
+
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_loss.png}
+            \caption{DQN Loss}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../cart_pole/debug_out/ppo_loss.png}
+            \caption{PPO Loss}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_epsilon.png}
+            \caption{DQN Epsilon}
+        \end{subfigure}
+    \end{figure}
+\end{frame}
+
+
+\begin{frame}{CarRacing - Porównanie Algorytmów}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.85\textwidth]{../car_racing/debug_out/comparison_rollout_ep_rew_mean.png}
+        \caption{Porównanie średniej nagrody w środowisku CarRacing.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{CarRacing - Szczegóły Treningu}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../car_racing/debug_out/dqn_reward.png}
+            \caption{DQN Reward}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../car_racing/debug_out/a2c_reward.png}
+            \caption{A2C Reward}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../car_racing/debug_out/ppo_reward.png}
+            \caption{PPO Reward}
+        \end{subfigure}
+
+        \vspace{0.5cm}
+
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../car_racing/debug_out/dqn_loss.png}
+            \caption{DQN Loss}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../car_racing/debug_out/a2c_loss.png}
+            \caption{A2C Loss}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../car_racing/debug_out/ppo_loss.png}
+            \caption{PPO Loss}
+        \end{subfigure}
+    \end{figure}
+\end{frame}
+
+\section{Podsumowanie}
+\begin{frame}{Wnioski Końcowe}
+    \begin{itemize}
+        \item \textbf{Teoria a Praktyka:} Mechanizm \emph{Clipping} w PPO rzeczywiscie zapewnia największą stabilność przy długich treningach.
+        \item \textbf{DQN:} Świetny do prostych gier zręcznościowych, ale trudny w tuningu (niestabilność Replay Buffer).
+        \item \textbf{Automatyzacja:} Zrozumienie hiperparametrów (gamma, learning rate) jest kluczowe, ale Optuna znajduje kombinacje nieoczywiste dla człowieka.
+    \end{itemize}
+\end{frame}
+
+\end{document}

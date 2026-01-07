@@ -3,6 +3,6 @@ __pycache__
 logs
 models
 .env
-lunar_lander/
-car_racing/
-cart_pole/
+# lunar_lander/
+# car_racing/
+# cart_pole/

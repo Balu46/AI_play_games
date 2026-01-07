@@ -1,0 +1,14 @@
+{
+    "learning_rate": 1.1916355033523862e-05,
+    "gamma": 0.99078583076193,
+    "net_arch": "medium",
+    "batch_size": 512,
+    "optimizer_class": "AdamW",
+    "activation_fn": "ELU",
+    "weight_decay": 0.0002437466231376965,
+    "target_update_interval": 10000,
+    "train_freq": 16,
+    "gradient_steps": 4,
+    "exploration_fraction": 0.37920978571835035,
+    "exploration_final_eps": 0.07748922129850681
+}

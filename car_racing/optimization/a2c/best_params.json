@@ -1,0 +1,14 @@
+{
+    "learning_rate": 4.9134038619912594e-05,
+    "gamma": 0.9783137151220349,
+    "net_arch": "medium",
+    "batch_size": 16,
+    "optimizer_class": "RMSprop",
+    "activation_fn": "ReLU",
+    "weight_decay": 2.888240881419452e-05,
+    "ent_coef": 0.006887267249520602,
+    "vf_coef": 0.6833129829718456,
+    "max_grad_norm": 4.268379852318791,
+    "gae_lambda": 0.9238527732678091,
+    "n_steps": 5
+}

@@ -38,7 +38,7 @@ if __name__ == "__main__":
     
     # Determine settings (CLI args take precedence)
     games = args.env if args.env else (config.get("game") if config else None)
-    if games is "all" : 
+    if games == "all" : 
         games = ["car_racing", "lunar_lander", "cart_pole"]
     else:
         games = [games]

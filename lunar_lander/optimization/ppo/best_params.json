@@ -1,0 +1,14 @@
+{
+    "learning_rate": 0.0010775910289204426,
+    "gamma": 0.9000274165943174,
+    "net_arch": "medium",
+    "batch_size": 256,
+    "optimizer_class": "AdamW",
+    "activation_fn": "ELU",
+    "weight_decay": 4.106767111434226e-06,
+    "ent_coef": 0.0644108211082007,
+    "vf_coef": 0.252672068798513,
+    "max_grad_norm": 3.307989913349079,
+    "gae_lambda": 0.8072870163283236,
+    "n_steps": 256
+}

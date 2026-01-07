@@ -81,9 +81,9 @@ def plot_algorithm_metrics(env_name, log_root, output_dir):
     """
     Generate detailed plots (Loss, Reward, Epsilon) for each algorithm.
     """
-    metrics = {
+    # Base metrics that apply to all algorithms
+    base_metrics = {
         "Reward": "rollout/ep_rew_mean",
-        "Loss": "train/loss",
         "Epsilon": "rollout/exploration_rate" 
     }
 
@@ -113,6 +113,19 @@ def plot_algorithm_metrics(env_name, log_root, output_dir):
                 break
         
         if event_file:
+            # Algorithm-specific loss metrics
+            algo_lower = algo.lower()
+            if algo_lower == "dqn":
+                loss_tag = "train/loss"
+            elif algo_lower in ["a2c", "ppo"]:
+                # For Actor-Critic algorithms, use value_loss as the primary loss metric
+                loss_tag = "train/value_loss"
+            else:
+                loss_tag = "train/loss"  # fallback
+            
+            # Combine base metrics with algorithm-specific loss
+            metrics = {**base_metrics, "Loss": loss_tag}
+            
             for metric_name, tag in metrics.items():
                 df = extract_scalar_from_event(event_file, tag=tag)
                 if df is not None:
@@ -126,7 +139,7 @@ def plot_algorithm_metrics(env_name, log_root, output_dir):
         full_df = pd.concat(algo_data, ignore_index=True)
 
         # Plot each metric
-        for metric_name in metrics.keys():
+        for metric_name in full_df["metric"].unique():
             metric_df = full_df[full_df["metric"] == metric_name]
             if metric_df.empty:
                 continue

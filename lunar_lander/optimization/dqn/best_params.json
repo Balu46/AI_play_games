@@ -1,0 +1,14 @@
+{
+    "learning_rate": 0.008207260405949827,
+    "gamma": 0.9897746171955748,
+    "net_arch": "tiny",
+    "batch_size": 32,
+    "optimizer_class": "Adam",
+    "activation_fn": "ReLU",
+    "weight_decay": 3.291042682110455e-06,
+    "target_update_interval": 1000,
+    "train_freq": 16,
+    "gradient_steps": 4,
+    "exploration_fraction": 0.3144025881459046,
+    "exploration_final_eps": 0.09108800369882784
+}

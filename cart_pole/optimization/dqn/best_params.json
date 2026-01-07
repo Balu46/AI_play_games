@@ -1,0 +1,14 @@
+{
+    "learning_rate": 0.00017932611619737466,
+    "gamma": 0.9534737990466642,
+    "net_arch": "medium",
+    "batch_size": 16,
+    "optimizer_class": "RMSprop",
+    "activation_fn": "Tanh",
+    "weight_decay": 2.1621497244033494e-05,
+    "target_update_interval": 1000,
+    "train_freq": 16,
+    "gradient_steps": 2,
+    "exploration_fraction": 0.4929325774855815,
+    "exploration_final_eps": 0.015472636576119202
+}

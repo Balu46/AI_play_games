@@ -1,0 +1,14 @@
+{
+    "learning_rate": 1.5665979601340763e-05,
+    "gamma": 0.9740529110686889,
+    "net_arch": "small",
+    "batch_size": 16,
+    "optimizer_class": "Adam",
+    "activation_fn": "ReLU",
+    "weight_decay": 1.9809341670021954e-06,
+    "ent_coef": 9.44319753234918e-06,
+    "vf_coef": 0.6361241406029099,
+    "max_grad_norm": 2.6224568684718026,
+    "gae_lambda": 0.9582131556762457,
+    "n_steps": 10
+}
