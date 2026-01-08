@@ -11,7 +11,7 @@
 \usepackage{subcaption}
 
 \title{Optymalizacja Agentów RL w Środowiskach Gier}
-\subtitle{Teoria i Praktyka: DQN, PPO, A2C}
+\subtitle{Teoria i Praktyka: DQN, A2C, PPO}
 \author{Jan}
 \date{\today}
 
@@ -39,6 +39,46 @@
     \end{itemize}
 \end{frame}
 
+\section{Dane i Przygotowanie}
+\begin{frame}{2. Dane w RL i Źródła}
+    \begin{itemize}
+        \item \textbf{Źródło danych:} interakcja agenta ze środowiskiem Gymnasium (symulator).
+        \item \textbf{Dane są generowane online:} trajektorie powstają w czasie treningu.
+        \item \textbf{Różne przestrzenie stanów:} wektor stanu (CartPole, LunarLander) vs obraz RGB 96x96 (CarRacing).
+        \item \textbf{Powtarzalność:} seed=0 trening, seed=42 ewaluacja, seed=1000 hold-out.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{3. Przygotowanie Danych}
+    \begin{itemize}
+        \item \textbf{Preprocessing CarRacing:} grayscale + resize do 84x84 + frame stacking (4 klatki).
+        \item \textbf{Normalizacja obrazu:} wejście jest normalizowane wewnątrz modelu (normalize\_images).
+        \item \textbf{Dostosowanie akcji:} dyskretyzacja sterowania tylko dla DQN w CarRacing.
+        \item \textbf{Wektoryzacja środowisk:} DummyVecEnv; A2C (16 env), PPO (8 env).
+    \end{itemize}
+\end{frame}
+
+\section{Analiza Danych (EDA)}
+\begin{frame}{4. EDA w RL}
+    \begin{itemize}
+        \item \textbf{Metryki z TensorBoard:} \texttt{rollout/ep\_rew\_mean}, \texttt{train/loss} lub \texttt{train/value\_loss}.
+        \item \textbf{Eksploracja DQN:} śledzenie \texttt{rollout/exploration\_rate}.
+        \item \textbf{Wykresy porównawcze:} automatyczne generowanie \texttt{debug\_out/comparison\_*} z najnowszych runów.
+        \item \textbf{Oś X:} normalizacja kroków do startu od 0.
+        \item \textbf{Trend stabilności:} analiza nachylenia krzywych reward/loss w czasie.
+    \end{itemize}
+\end{frame}
+
+\section{Wybór Modelu}
+\begin{frame}{Uzasadnienie Wyboru Modelu}
+    \begin{itemize}
+        \item \textbf{DQN:} najlepszy dla dyskretnych akcji i prostszych przestrzeni stanów (CartPole, LunarLander).
+        \item \textbf{PPO:} stabilny algorytm on-policy do akcji ciągłych i dyskretnych (CarRacing).
+        \item \textbf{A2C:} szybka alternatywa dla PPO, testowana jako kompromis szybkość/stabilność.
+        \item \textbf{Cel porównania:} sprawdzenie wpływu typu algorytmu na stabilność i sample efficiency.
+    \end{itemize}
+\end{frame}
+
 \section{Podstawy Teoretyczne}
 \begin{frame}{Podstawy Teoretyczne RL}
     \textbf{Proces Decyzyjny Markova (MDP):}
@@ -51,62 +91,143 @@
     gdzie $\gamma \in [0, 1]$ to czynnik dyskontujący (discount factor).
 \end{frame}
 
+\begin{frame}{Podstawy Teoretyczne RL - Pojęcia}
+    \begin{itemize}
+        \item \textbf{Polityka $\pi(a|s)$:} rozkład akcji w danym stanie (deterministyczna lub stochastyczna).
+        \item \textbf{Funkcja wartości $V^\pi(s)$:} oczekiwany zwrot z danego stanu przy polityce $\pi$.
+        \item \textbf{Funkcja $Q^\pi(s,a)$:} oczekiwany zwrot po wykonaniu akcji $a$ w stanie $s$.
+        \item \textbf{Eksploracja vs eksploatacja:} wybór między nowymi akcjami a tymi już opłacalnymi.
+        \item \textbf{On-policy vs off-policy:} czy dane do uczenia pochodzą z aktualnej polityki.
+    \end{itemize}
+\end{frame}
+
 \section{Szczegółowa Teoria Modeli}
 
 \subsection{DQN (Deep Q-Network)}
-\begin{frame}{Deep Q-Network (DQN) - Teoria}
-    \textbf{Typ:} Off-policy, Value-based, Model-free.
-    
-    \textbf{Koncepcja:}
-    DQN aproksymuje funkcję wartości $Q(s, a)$ za pomocą sieci neuronowej, dążąc do spełnienia równania Bellmana:
-    $$ Q^*(s, a) = \mathbb{E} [r + \gamma \max_{a'} Q^*(s', a')] $$
+\begin{frame}{Deep Q-Network (DQN)}
+    \begin{itemize}
+        \item Deep Q-Network (DQN), nazywany też Deep Q-Learning, to ulepszona wersja Q-Learning.
+        \item Zamiast tabeli wartości używa sieci neuronowej, dzięki czemu działa w dużych przestrzeniach stanów.
+        \item Nadal ma problem przy bardzo dużej liczbie możliwych akcji, bo trzeba liczyć $Q$ dla każdej z nich.
+        \item Mimo ograniczeń jest skuteczny i pozwala grać nawet w skomplikowane gry 3D.
+    \end{itemize}
+\end{frame}
 
-    \textbf{Kluczowe mechanizmy stabilizujące:}
-    \begin{enumerate}
-        \item \textbf{Experience Replay (Bufor Doświadczeń):}
-        Przechowuje prześcia $(s, a, r, s')$ i losuje je do treningu (batch), co łamie korelację czasową danych.
-        \item \textbf{Target Network (Sieć Docelowa):}
-        Osobna sieć $\hat{Q}$ z zamrożonymi wagami służy do obliczania celu, co zapobiega oscylacjom ("goniący króliczek").
-    \end{enumerate}
-    
-    \textbf{Zastosowanie:} Idealny do akcji dyskretnych (\texttt{CartPole}, \texttt{LunarLander}).
+\begin{frame}{DQN - Funkcja straty}
+    \textbf{Funkcja straty (loss):}
+    $$ loss = (Q_{target} - Q_{current}) $$
+    gdzie:
+    \begin{itemize}
+        \item $Q_{current}$ to wartość $Q$ zwracana przez model dla stanu $s$.
+        \item $Q_{target} = nagroda + \gamma \max(Q(s_{next}))$.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{DQN - Problemy}
+    \begin{itemize}
+        \item \textbf{Zapominanie doświadczeń:} nowe epizody nadpisują wcześniejsze umiejętności.
+        \item \textbf{Korelacja doświadczeń:} agent uczy się sekwencji akcji zamiast reagować na bieżący stan.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{DQN - Rozwiązania}
+    \begin{itemize}
+        \item Rozdzielenie eksploracji i nauki przez bufor doświadczeń.
+        \item Zapis epizodów do kolejki o maksymalnym rozmiarze.
+        \item Losowy dobór próbek do uczenia, co redukuje korelacje i zapominanie.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{DQN - Kluczowe mechanizmy}
+    \begin{itemize}
+        \item \textbf{Równanie Bellmana:} $Q(s,a) \leftarrow r + \gamma \max_{a'} Q(s',a')$.
+        \item \textbf{Target Network:} osobna sieć do obliczania celu stabilizuje uczenie.
+        \item \textbf{Eksploracja $\epsilon$-greedy:} kontrola kompromisu eksploracja/eksploatacja.
+        \item \textbf{Double DQN:} rozdzielenie wyboru i oceny akcji zmniejsza zawyżanie $Q$.
+    \end{itemize}
 \end{frame}
 
 \subsection{A2C (Advantage Actor-Critic)}
-\begin{frame}{Advantage Actor-Critic (A2C) - Teoria}
-    \textbf{Typ:} On-policy, Actor-Critic, Hybrid.
-    
-    \textbf{Architektura:}
-    Składa się z dwóch części (często współdzielących wagi początkowe):
+\begin{frame}{Advantage Actor-Critic (A2C)}
     \begin{itemize}
-        \item \textbf{Actor (Aktor):} Uczy się polityki $\pi(a|s)$ (jak działać).
-        \item \textbf{Critic (Krytyk):} Ocenia wartość stanu $V(s)$ (jak dobra jest sytuacja).
+        \item Hybryda podejścia z polityką i bez polityki.
+        \item Składa się z dwóch sieci: \textbf{Aktor} steruje zachowaniem, \textbf{Krytyk} ocenia akcję.
+        \item A2C dyskontuje nagrody na każdym kroku, co stabilizuje ocenę.
     \end{itemize}
+\end{frame}
 
-    \textbf{Funkcja Advantage (Przewagi):}
-    $$ A(s, a) = Q(s, a) - V(s) \approx r + \gamma V(s') - V(s) $$
-    Mówi nam, "o ile lepiej" było podjąć akcję $a$ niż średnio w tym stanie.
-    
-    \textbf{Cechy:}
+\begin{frame}{A2C - Aktualizacja krytyka}
+    Krytyk używa funkcji wartości $V(s)$:
+    $$ \Delta w = \beta (r_t + \gamma V(s_{t+1}) - V(s_t)) \nabla_w V_w(s_t) $$
+    Użycie $V$ zamiast $Q$ poprawia stabilność uczenia.
+\end{frame}
+
+\begin{frame}{A2C - Aktualizacja aktora}
+    Funkcja przewagi:
+    $$ A(s_t, s_{t+1}) = r_t + \gamma V(s_{t+1}) - V(s_t) $$
+    Aktualizacja aktora:
+    $$ \Delta \theta = \alpha[\nabla(\log \pi(s,a,\theta)) \cdot A(s_t, s_{t+1}) + c\nabla S\pi(s_t)] $$
+    Jest to forma analogiczna do strategii gradientowej.
+\end{frame}
+
+\begin{frame}{A2C - Dlaczego działa}
     \begin{itemize}
-        \item Aktualizacje synchroniczne na wielu równoległych środowiskach.
-        \item Mniejsza wariancja gradientów niż w czystym Policy Gradient.
+        \item \textbf{Błąd TD:} $r_t + \gamma V(s_{t+1}) - V(s_t)$ szybko przenosi informację o nagrodzie.
+        \item \textbf{N-step returns:} łączy stabilność TD i informację z dłuższych trajektorii.
+        \item \textbf{Entropia polityki:} bonus za różnorodność działań zapobiega zbyt wczesnej zbieżności.
+        \item \textbf{Równoległe środowiska:} redukują korelacje i przyspieszają zbieranie danych.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{A2C - Replay i równoległość}
+    \begin{itemize}
+        \item Uczenie równoległe na wielu środowiskach zamiast klasycznego replay.
+        \item Kroki: ruch w każdym środowisku, gradienty lokalne, średni gradient, aktualizacja strategii.
+        \item Alternatywnie: dodatkowa sieć do aktualizacji wag (zysk na GPU).
     \end{itemize}
 \end{frame}
 
 \subsection{PPO (Proximal Policy Optimization)}
-\begin{frame}{Proximal Policy Optimization (PPO) - Teoria}
-    \textbf{Typ:} On-policy, Actor-Critic.
-    
-    \textbf{Problem:}
-    Tradycyjne metody Policy Gradient są bardzo wrażliwe na zbyt duży krok uczenia (learning rate), co może zniszczyć politykę.
-    
-    \textbf{Rozwiązanie - Clipped Objective:}
-    PPO ogranicza zmianę polityki w jednym kroku. Definiujemy stosunek prawdopodobieństw $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)}$. Funkcja celu to:
-    $$ L^{CLIP}(\theta) = \hat{\mathbb{E}} [\min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t)] $$
-    
-    \textbf{Interpretacja:}
-    Jeśli zmiana polityki jest zbyt drastyczna (poza przedział $[1-\epsilon, 1+\epsilon]$), aktualizacja jest "przycinana". To gwarantuje monotoniczną poprawę i stabilność treningu.
+\begin{frame}{Proximal Policy Optimization (PPO)}
+    \begin{itemize}
+        \item PPO to state of the art w RL, użyty m.in. do przełomu w Dota 2 (2018).
+        \item Architektura podobna do A2C: aktor i krytyk.
+        \item Główna idea: unikanie zbyt dużych aktualizacji aktora.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{PPO - Funkcja zmiany}
+    Stosunek prawdopodobieństw:
+    $$ r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{old}}(a_t|s_t)} $$
+    Cel: utrzymać $r_t(\theta)$ w przedziale $[1-\epsilon, 1+\epsilon]$.
+\end{frame}
+
+\begin{frame}{PPO - Funkcja clip}
+    $$ clip(r_t(\theta), \epsilon) =
+    \begin{cases}
+    1 - \epsilon & \text{gdy } r_t(\theta) < 1 - \epsilon \\
+    r_t(\theta) & \text{gdy } r_t(\theta) \in (1-\epsilon, 1+\epsilon) \\
+    1 + \epsilon & \text{gdy } r_t(\theta) > 1 + \epsilon
+    \end{cases}
+    $$
+\end{frame}
+
+\begin{frame}{PPO - Funkcje loss}
+    \textbf{Loss polityki:}
+    $$ L_{clip} = \mathbb{E}_t[\min(r_t(\theta) \cdot A_t, clip(r_t(\theta), \epsilon) \cdot A_t)] $$
+    \textbf{Loss krytyka:}
+    $$ L_V = r_t + \gamma V(s_{t+1}) - V(s_t) $$
+    \textbf{Loss całkowity:}
+    $$ Loss = \mathbb{E}_t[L_V - c_1 L_{clip} + c_2 S[\pi](s_t)] $$
+\end{frame}
+
+\begin{frame}{PPO - Stabilność i praktyka}
+    \begin{itemize}
+        \item \textbf{Clipping} działa jak miękki ogranicznik kroku uczenia.
+        \item \textbf{GAE ($\lambda$):} wygładza estymację przewagi i zmniejsza wariancję.
+        \item \textbf{Minibatch SGD:} kilka epok po tych samych danych zwiększa stabilność.
+        \item \textbf{Monitorowanie KL:} zbyt duża dywergencja oznacza zbyt agresywne aktualizacje.
+    \end{itemize}
 \end{frame}
 
 \section{Kluczowe Hiperparametry}
@@ -137,24 +258,50 @@
 \end{frame}
 
 \begin{frame}{Optymalizacja w Praktyce - LunarLander (Case Study)}
-    Analiza zmian hiperparametrów po optymalizacji (Default vs Optimized):
-    \begin{table}[]
-        \tiny
-        \begin{tabular}{|l|l|l|l|l|}
-        \hline
-        \textbf{Parametr} & \textbf{Default} & \textbf{PPO (Opt)} & \textbf{DQN (Opt)} & \textbf{A2C (Opt)} \\ \hline
-        Learning Rate & $3 \cdot 10^{-4}$ & $\mathbf{1.1 \cdot 10^{-3}}$ & $\mathbf{8.2 \cdot 10^{-3}}$ & $\mathbf{3.3 \cdot 10^{-3}}$ \\ \hline
-        Gamma ($\gamma$) & $0.99$ & $0.90$ & $0.99$ & $0.93$ \\ \hline
-        Net Arch & Medium & Medium & \textbf{Tiny} & \textbf{Tiny} \\ \hline
-        Activation & ReLU & \textbf{ELU} & ReLU & \textbf{ELU} \\ \hline
-        Ent Coef & $0.0$ & $0.064$ & - & $0.00015$ \\ \hline
-        \end{tabular}
-    \end{table}
-    \textbf{Wnioski:}
+    Obecnie Optuna optymalizuje z metryką hold-out (niezależne seedy), co redukuje przeuczenie do jednej ewaluacji.
     \begin{itemize}
-        \item Modele preferowały \textbf{wyższy LR} niż domyślny.
-        \item Policy Gradient (PPO, A2C) zyskały na \textbf{mniejszej gammie} (skupienie na bliższych nagrodach).
-        \item Prostsze sieci ("Tiny") wystarczyły dla A2C/DQN.
+        \item \textbf{Cel optymalizacji:} holdout/mean\_reward.
+        \item \textbf{Budżet:} domyślnie 30 prób, 100k kroków na próbę.
+        \item \textbf{Różne algorytmy:} osobne przestrzenie hiperparametrów dla DQN oraz PPO/A2C.
+    \end{itemize}
+\end{frame}
+
+\section{Trening i Ewaluacja}
+\begin{frame}{Trening Modeli}
+    \begin{itemize}
+        \item \textbf{Budżet treningu:} konfigurowalny w \texttt{config.json} (aktualnie 5000 kroków).
+        \item \textbf{Podział środowisk:} trening seed=0, ewaluacja seed=42, hold-out seed=1000.
+        \item \textbf{Early stopping:} patience=20 w CarRacing, minimalny próg kroków (500k dla CarRacing, 100k dla pozostałych).
+        \item \textbf{Optymalizacja:} Optuna (domyślnie 30 prób, 100k kroków na próbę).
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Ewaluacja Modeli}
+    \begin{itemize}
+        \item \textbf{Eval vs Hold-out:} eval służy do wyboru modelu, hold-out do kontroli generalizacji.
+        \item \textbf{Mean Reward:} główna metryka skuteczności (eval/mean\_reward, holdout/mean\_reward).
+        \item \textbf{Episodic Length:} dodatkowa kontrola stabilności.
+        \item \textbf{Ewaluacja deterministyczna:} stałe warunki porównań, 10 epizodów na ewaluację.
+    \end{itemize}
+\end{frame}
+
+\section{Analiza Błędów}
+\begin{frame}{Analiza Błędów i Ograniczeń}
+    \begin{itemize}
+        \item \textbf{Plateau nagrody:} widoczne wypłaszczenia na wykresach reward.
+        \item \textbf{Katastrofalne zapominanie:} spadki po długich treningach.
+        \item \textbf{CarRacing + DQN:} utrata płynności sterowania przy dyskretnych akcjach.
+        \item \textbf{Diagnostyka:} porównanie reward/loss/epsilon między algorytmami.
+    \end{itemize}
+\end{frame}
+
+\section{Udoskonalenia}
+\begin{frame}{Optymalizacja i Ulepszenia}
+    \begin{itemize}
+        \item \textbf{Preprocessing CarRacing:} grayscale + resize + frame stacking (4).
+        \item \textbf{Dyskretyzacja akcji:} tylko dla DQN w CarRacing.
+        \item \textbf{DQN buffer size:} redukcja do 50k dla danych obrazowych.
+        \item \textbf{Tuning Optuna:} LR $10^{-5}$--$10^{-2}$, $\gamma$ 0.9--0.9999, batch 16--512.
     \end{itemize}
 \end{frame}
 
@@ -162,7 +309,7 @@
     \begin{figure}
         \centering
         \includegraphics[width=0.85\textwidth]{../lunar_lander/debug_out/comparison_rollout_ep_rew_mean.png}
-        \caption{Średnia nagroda w epizodzie dla LunarLander. PPO osiąga najlepsze wyniki.}
+        \caption{Średnia nagroda w epizodzie dla LunarLander (najnowsze runy).}
     \end{figure}
 \end{frame}
 
@@ -198,11 +345,11 @@
 \end{frame}
 
 \begin{frame}{Wyniki Optymalizacji z Optuna}
-    Dla algorytmu PPO w środowisku \texttt{LunarLander}:
+    Wyniki zależą od środowiska i długości triali. Aktualnie optymalizacja:
     \begin{itemize}
-        \item Domyślny LR ($3 \cdot 10^{-4}$) $\to$ Zoptymalizowany LR ($1.2 \cdot 10^{-3}$).
-        \item Poprawa średniej nagrody (Mean Reward): $-150 \to +230$.
-        \item Znaczenie entropii (\texttt{ent\_coef}): Wyższa wartość na początku pomogła w eksploracji trudnych lądowań.
+        \item wybiera parametry na podstawie \textbf{hold-out mean reward},
+        \item używa dłuższych triali (100k kroków),
+        \item ogranicza ryzyko przeuczenia do jednego seeda.
     \end{itemize}
 \end{frame}
 
@@ -254,6 +401,29 @@
             \centering
             \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_epsilon.png}
             \caption{DQN Epsilon}
+        \end{subfigure}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{DQN - Epsilon Decay (Porownanie)}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_epsilon.png}
+            \caption{CartPole}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../lunar_lander/debug_out/dqn_epsilon.png}
+            \caption{LunarLander}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{../car_racing/debug_out/dqn_epsilon.png}
+            \caption{CarRacing}
         \end{subfigure}
     \end{figure}
 \end{frame}
@@ -313,9 +483,9 @@
 \section{Podsumowanie}
 \begin{frame}{Wnioski Końcowe}
     \begin{itemize}
-        \item \textbf{Teoria a Praktyka:} Mechanizm \emph{Clipping} w PPO rzeczywiscie zapewnia największą stabilność przy długich treningach.
-        \item \textbf{DQN:} Świetny do prostych gier zręcznościowych, ale trudny w tuningu (niestabilność Replay Buffer).
-        \item \textbf{Automatyzacja:} Zrozumienie hiperparametrów (gamma, learning rate) jest kluczowe, ale Optuna znajduje kombinacje nieoczywiste dla człowieka.
+        \item \textbf{Stabilność:} PPO jest zwykle stabilniejsze niż A2C, ale wymaga sensownego budżetu kroków.
+        \item \textbf{Obrazy:} DQN w środowiskach obrazowych wymaga preprocessing (grayscale, resize, frame stack).
+        \item \textbf{Automatyzacja:} Optuna przyspiesza tuning, ale kosztuje czas i wymaga kontroli hold-out.
     \end{itemize}
 \end{frame}
 

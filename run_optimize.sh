@@ -9,8 +9,8 @@ export PYTHONPATH=$PYTHONPATH:.
 # Default values
 ENV="all"
 ALGO="all"
-TRIALS=10
-TIMESTEPS=30000
+TRIALS=30
+TIMESTEPS=100000
 
 # Supported lists
 ALL_ENVS=("cart_pole" "lunar_lander" "car_racing")
@@ -21,8 +21,8 @@ help() {
    echo "Usage: ./run_optimize.sh [ -e environment ] [ -a algorithm ] [ -n trials ] [ -t timesteps ]"
    echo "  -e : Environment (default: all - runs on ${ALL_ENVS[*]})"
    echo "  -a : Algorithm (default: all - runs ${ALL_ALGOS[*]})"
-   echo "  -n : Number of trials (default: 10)"
-   echo "  -t : Timesteps per trial (default: 30000)"
+   echo "  -n : Number of trials (default: 30)"
+   echo "  -t : Timesteps per trial (default: 100000)"
    exit 1
 }
 

@@ -5,7 +5,7 @@ from stable_baselines3 import PPO, A2C, DQN
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 
-from src.stable_baseline.utils.discrete_actions_wrapper import DiscreteActionsWrapper
+from src.stable_baseline.utils.car_racing_wrappers import build_car_racing_wrapper, apply_frame_stack
 
 # Using the same maps as train.py for consistency
 # In a larger project, these should be in a shared config file
@@ -50,27 +50,38 @@ def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: i
         print(f"\n--- Running {algo.upper()} ---")
         
 
-        # Initialize environment with render_mode='human'
-        env = gym.make(gym_env_id, render_mode="human")
-        if "CarRacing" in gym_env_id and algo == "dqn":
-            env = DiscreteActionsWrapper(env)
+        # Initialize vectorized env with render_mode='human'
+        wrapper_class = None
+        is_car_racing = "CarRacing" in gym_env_id
+        if is_car_racing:
+            wrapper_class = build_car_racing_wrapper(use_discrete_actions=(algo == "dqn"))
+        env = make_vec_env(
+            gym_env_id,
+            n_envs=1,
+            seed=0,
+            vec_env_cls=DummyVecEnv,
+            wrapper_class=wrapper_class,
+            env_kwargs={"render_mode": "human"},
+        )
+        if is_car_racing:
+            env = apply_frame_stack(env, n_stack=4)
 
-        
         # Load Model
         AlgoClass = ALGO_MAP[algo]
         try:
             model = AlgoClass.load(model_path, env=env)
             
             for ep in range(episodes):
-                obs, info = env.reset()
+                obs = env.reset()
                 done = False
                 score = 0.0
                 
                 while not done:
                     action, _ = model.predict(obs, deterministic=True)
-                    obs, reward, terminated, truncated, info = env.step(action)
-                    done = terminated or truncated
-                    score += reward
+                    obs, reward, done, info = env.step(action)
+                    env.render()
+                    score += float(reward[0])
+                    done = bool(done[0])
                 
                 print(f"[{algo.upper()}] Episode {ep+1}: Score {score:.2f}")
 

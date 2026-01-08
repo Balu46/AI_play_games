@@ -3,9 +3,10 @@ import os
 import torch as T
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
-from stable_baselines3.common.callbacks import StopTrainingOnMaxEpisodes, EvalCallback, CallbackList, StopTrainingOnNoModelImprovement
+from stable_baselines3.common.callbacks import StopTrainingOnMaxEpisodes, EvalCallback, CallbackList, StopTrainingOnNoModelImprovement, BaseCallback
+from stable_baselines3.common.evaluation import evaluate_policy
 
-from src.stable_baseline.utils.discrete_actions_wrapper import DiscreteActionsWrapper
+from src.stable_baseline.utils.car_racing_wrappers import build_car_racing_wrapper, apply_frame_stack
 
 from stable_baselines3.dqn import DQN
 from stable_baselines3.a2c import A2C
@@ -17,6 +18,48 @@ ALGO_MAP = {
     "a2c": A2C,
     "ppo": PPO,
 }
+
+class HoldoutEvalCallback(BaseCallback):
+    def __init__(self, eval_env, eval_freq: int, n_eval_episodes: int = 5, deterministic: bool = True, render: bool = False, verbose: int = 0):
+        super().__init__(verbose)
+        self.eval_env = eval_env
+        self.eval_freq = eval_freq
+        self.n_eval_episodes = n_eval_episodes
+        self.deterministic = deterministic
+        self.render = render
+        self.last_mean_reward = None
+        self.best_mean_reward = None
+
+    def _on_step(self) -> bool:
+        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
+            mean_reward, std_reward = evaluate_policy(
+                self.model,
+                self.eval_env,
+                n_eval_episodes=self.n_eval_episodes,
+                deterministic=self.deterministic,
+                render=self.render,
+            )
+            self.logger.record("holdout/mean_reward", mean_reward)
+            self.logger.record("holdout/std_reward", std_reward)
+            self.last_mean_reward = mean_reward
+            if self.best_mean_reward is None or mean_reward > self.best_mean_reward:
+                self.best_mean_reward = mean_reward
+        return True
+
+class MinTimestepsCallback(BaseCallback):
+    def __init__(self, callback: BaseCallback, min_timesteps: int):
+        super().__init__(verbose=callback.verbose)
+        self.callback = callback
+        self.min_timesteps = min_timesteps
+
+    def _on_training_start(self) -> None:
+        self.callback.model = self.model
+        self.callback._on_training_start()
+
+    def _on_step(self) -> bool:
+        if self.model.num_timesteps < self.min_timesteps:
+            return True
+        return self.callback._on_step()
 
 # Map simple environment names to Gym IDs
 ENV_MAP = {
@@ -45,11 +88,24 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
 
     # Environment setup
     wrapper_class = None
-    if algo_name == "dqn" and gym_env_id == "CarRacing-v3":
-        wrapper_class = DiscreteActionsWrapper
+    is_car_racing = gym_env_id == "CarRacing-v3"
+    if is_car_racing:
+        wrapper_class = build_car_racing_wrapper(use_discrete_actions=(algo_name == "dqn"))
 
-    env = make_vec_env(gym_env_id, n_envs=1, seed=0, vec_env_cls=DummyVecEnv, wrapper_class=wrapper_class)
-    eval_env = make_vec_env(gym_env_id, n_envs=1, seed=42, vec_env_cls=DummyVecEnv, wrapper_class=wrapper_class)
+    if algo_name == "a2c":
+        n_envs = 16
+    elif algo_name == "ppo":
+        n_envs = 8
+    else:
+        n_envs = 1
+    eval_n_envs = 5
+    env = make_vec_env(gym_env_id, n_envs=n_envs, seed=0, vec_env_cls=DummyVecEnv, wrapper_class=wrapper_class)
+    eval_env = make_vec_env(gym_env_id, n_envs=eval_n_envs, seed=42, vec_env_cls=DummyVecEnv, wrapper_class=wrapper_class)
+    holdout_eval_env = make_vec_env(gym_env_id, n_envs=eval_n_envs, seed=1000, vec_env_cls=DummyVecEnv, wrapper_class=wrapper_class)
+    if is_car_racing:
+        env = apply_frame_stack(env, n_stack=4)
+        eval_env = apply_frame_stack(eval_env, n_stack=4)
+        holdout_eval_env = apply_frame_stack(holdout_eval_env, n_stack=4)
 
     # Select Policy Type
     if "CarRacing" in gym_env_id:
@@ -70,7 +126,6 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     # New hyperparams defaults
     activation_fn_name = "ReLU"
     optimizer_class_name = "AdamW"
-    weight_decay = 1e-5
     
     # Mappings
     ACTIVATION_FN_MAP = {
@@ -87,6 +142,13 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
 
     # General arguments for the agent constructor
     kwargs = {}
+
+    if algo_name == "a2c":
+        learning_rate = 3e-4
+        kwargs.setdefault("n_steps", 256)
+        kwargs.setdefault("ent_coef", 0.005)
+    elif algo_name == "ppo":
+        kwargs.setdefault("n_steps", 256)
 
     # Override with hyperparams if provided
     if hyperparams:
@@ -107,9 +169,6 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
         
         if "optimizer_class" in hyperparams:
             optimizer_class_name = hyperparams["optimizer_class"]
-
-        if "weight_decay" in hyperparams:
-            weight_decay = hyperparams["weight_decay"]
 
         # Extract common params
         if "batch_size" in hyperparams and algo_name != "a2c":
@@ -140,7 +199,6 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
             activation_fn=activation_fn,
             net_arch=net_arch,
             optimizer_class=optimizer_class,
-            optimizer_kwargs=dict(weight_decay=weight_decay),
             normalize_images=True
         )
     else:
@@ -149,7 +207,6 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
             activation_fn=activation_fn,
             net_arch=[dict(pi=net_arch, vf=net_arch)], # Shared architecture structure
             optimizer_class=optimizer_class,
-            optimizer_kwargs=dict(weight_decay=weight_decay),
             normalize_images=True
         )
     
@@ -180,20 +237,40 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     callbacks = []
     
     # Early Stopping Callback
-    stop_callback = StopTrainingOnNoModelImprovement(max_no_improvement_evals=patience, verbose=1)
+    effective_patience = 20 if env_name == "car_racing" else patience
+    stop_callback = StopTrainingOnNoModelImprovement(max_no_improvement_evals=effective_patience, verbose=1)
 
     # Eval Callback - Saves the best model
+    eval_freq = 20000 if not hyperparams else 2000
+    if hyperparams and total_timesteps:
+        eval_freq = max(eval_freq, total_timesteps // 50)
+
+    eval_n_episodes = 10
     eval_callback = EvalCallback(
         eval_env,
         best_model_save_path=model_dir,
         log_path=model_dir,
-        eval_freq=10000 if not hyperparams else 2000, # More frequent eval during optimization
-        callback_after_eval=stop_callback, # Add early stopping here
+        eval_freq=eval_freq, # More frequent eval during optimization
+        callback_after_eval=MinTimestepsCallback(
+            stop_callback,
+            min_timesteps=500_000 if env_name == "car_racing" else 100_000,
+        ),
         deterministic=True,
         render=False,
+        n_eval_episodes=eval_n_episodes,
         verbose=1
     )
     callbacks.append(eval_callback)
+
+    holdout_callback = HoldoutEvalCallback(
+        holdout_eval_env,
+        eval_freq=eval_freq,
+        n_eval_episodes=eval_n_episodes,
+        deterministic=True,
+        render=False,
+        verbose=0
+    )
+    callbacks.append(holdout_callback)
 
     # Episode or Timestep Limit
     if total_episodes is not None:
@@ -208,7 +285,12 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     
     callback = CallbackList(callbacks)
 
-    agent.learn(total_timesteps=total_timesteps, callback=callback, progress_bar=True)
+    agent.learn(
+        total_timesteps=total_timesteps,
+        callback=callback,
+        progress_bar=True,
+        log_interval=1,
+    )
 
     # Ensure existence of best_model.zip
     best_model_path = os.path.join(model_dir, "best_model.zip")
@@ -218,7 +300,10 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     
     env.close()
     eval_env.close()
+    holdout_eval_env.close()
     
+    if hyperparams and holdout_callback.best_mean_reward is not None:
+        return holdout_callback.best_mean_reward
     return eval_callback.best_mean_reward
 
         

@@ -25,7 +25,6 @@ def objective(trial, args):
     hyperparams["optimizer_class"] = gradient_steps
     
     hyperparams["activation_fn"] = trial.suggest_categorical("activation_fn", ["ReLU", "Tanh", "ELU"])
-    hyperparams["weight_decay"] = trial.suggest_float("weight_decay", 1e-6, 1e-3, log=True)
     
     if args.algo == "dqn":
         hyperparams["target_update_interval"] = trial.suggest_categorical("target_update_interval", [1000, 5000, 10000, 20000])
@@ -60,14 +59,15 @@ def objective(trial, args):
         
         # Determine strict limits for optimization trials to avoid infinite loops
         # or extremely long training sessions
-        timesteps = args.timesteps if args.timesteps else 50000 
+        timesteps = args.timesteps if args.timesteps else 100000
         
         best_reward = train(
             algo_name=args.algo,
             env_name=args.env,
             total_timesteps=timesteps,
             total_episodes=None,
-            hyperparams=hyperparams
+            hyperparams=hyperparams,
+            patience=10
         )
         
         return best_reward
@@ -115,4 +115,3 @@ def run_optimization(args):
         json.dump(trial.params, f, indent=4)
         
     print(f"Best parameters saved to {best_params_file}")
-

@@ -25,10 +25,11 @@ if __name__ == "__main__":
     # Optional overrides
     parser.add_argument("--algo", type=str, help="Algorithm override (e.g. ppo)")
     parser.add_argument("--env", type=str, help="Environment override (e.g. lunar_lander)")
+    parser.add_argument("--no-optimized-params", action="store_true", help="Skip loading optimized hyperparameters")
     
     # Optimization specific
     parser.add_argument("--n-trials", type=int, default=10, help="Number of trials for optimization")
-    parser.add_argument("--timesteps", type=int, default=30000, help="Timesteps per trial for optimization")
+    parser.add_argument("--timesteps", type=int, default=100000, help="Timesteps per trial for optimization")
     parser.add_argument("--study-name", type=str, default="rl_optimization", help="Study name for optimization")
 
     args = parser.parse_args()
@@ -63,15 +64,17 @@ if __name__ == "__main__":
                 # Check for optimized hyperparameters
                 hyperparams = None  
                 optimization_path = os.path.join(game, "optimization", algo, "best_params.json")
-                if os.path.exists(optimization_path):
+                if not args.no_optimized_params and os.path.exists(optimization_path):
                     print(f"Found optimized hyperparameters at {optimization_path}")
                     try:
                         with open(optimization_path, "r") as f:
                             hyperparams = json.load(f)
                     except Exception as e:
                         print(f"Error loading optimized hyperparameters: {e}")
+                elif args.no_optimized_params:
+                    print("Skipping optimized hyperparameters (flag enabled).")
                 
-                train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams)
+                train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams, patience=10)
 
     elif args.mode == "visualize":
         for game in games:

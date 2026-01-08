@@ -132,7 +132,7 @@ def plot_algorithm_metrics(env_name, log_root, output_dir):
                 continue
 
             plt.figure(figsize=(8, 5))
-            sns.lineplot(data=metric_df, x="step", y="value", style="run", markers=True)
+            sns.lineplot(data=metric_df, x="step", y="value", style="run")
             plt.title(f"{env_name} - {algo.upper()} - {metric_name}")
             plt.xlabel("Timesteps")
             plt.ylabel(metric_name)
