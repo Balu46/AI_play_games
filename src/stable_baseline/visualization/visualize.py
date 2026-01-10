@@ -1,11 +1,13 @@
 import gymnasium as gym
 import os
 import torch as T
+import logging
 from stable_baselines3 import PPO, A2C, DQN
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 from src.stable_baseline.utils.car_racing_wrappers import build_car_racing_wrapper, apply_frame_stack
+from src.logging_utils import setup_logging
 
 # Using the same maps as train.py for consistency
 # In a larger project, these should be in a shared config file
@@ -21,12 +23,17 @@ ENV_MAP = {
     "cart_pole": "CartPole-v1",
 }
 
+logger = logging.getLogger(__name__)
+
 def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: int = 5):
     """
     Load a trained model and render it in the environment.
     """
     if env_name not in ENV_MAP:
         raise ValueError(f"Unknown environment: {env_name}. Available: {list(ENV_MAP.keys())}")
+
+    log_file = os.path.join(env_name, "logs", "visualize.log")
+    setup_logging(log_file, __name__)
 
     gym_env_id = ENV_MAP[env_name]
     
@@ -38,16 +45,16 @@ def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: i
             raise ValueError(f"Unknown algorithm: {algo_name}. Available: {list(ALGO_MAP.keys())}")
         algos_to_run = [algo_name]
 
-    print(f"Visualizing: {algos_to_run} on {env_name}")
+    logger.info("Visualizing: %s on %s", algos_to_run, env_name)
 
     for algo in algos_to_run:
         model_path = f"{env_name}/models/{algo}/best_model.zip"
         
         if not os.path.exists(model_path):
-            print(f"Skipping {algo}: Model file not found at {model_path}")
+            logger.warning("Skipping %s: Model file not found at %s", algo, model_path)
             continue
 
-        print(f"\n--- Running {algo.upper()} ---")
+        logger.info("--- Running %s ---", algo.upper())
         
 
         # Initialize vectorized env with render_mode='human'
@@ -83,12 +90,12 @@ def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: i
                     score += float(reward[0])
                     done = bool(done[0])
                 
-                print(f"[{algo.upper()}] Episode {ep+1}: Score {score:.2f}")
+                logger.info("[%s] Episode %s: Score %.2f", algo.upper(), ep + 1, score)
 
         except Exception as e:
-            print(f"Error running {algo}: {e}")
+            logger.error("Error running %s: %s", algo, e)
         except KeyboardInterrupt:
-            print("\nVisualization interrupted.")
+            logger.info("Visualization interrupted.")
             env.close()
             return
         finally:

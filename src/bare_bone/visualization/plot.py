@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import seaborn as sns
+import logging
+from src.logging_utils import setup_logging
+
+logger = logging.getLogger(__name__)
 
 def extract_scalar_from_event(event_file, tag="rollout/ep_rew_mean"):
     ea = EventAccumulator(event_file)
@@ -16,9 +20,11 @@ def extract_scalar_from_event(event_file, tag="rollout/ep_rew_mean"):
     return pd.DataFrame({"step": steps, "value": values})
 
 def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean"):
+    log_file = os.path.join(env_name, "logs", "plot.log")
+    setup_logging(log_file, __name__)
     log_root = f"{env_name}/logs"
     if not os.path.exists(log_root):
-        print(f"No logs found for {env_name} at {log_root}")
+        logger.warning("No logs found for %s at %s", env_name, log_root)
         return
 
     data = []
@@ -46,7 +52,7 @@ def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean"):
                 break
         
         if event_file:
-            print(f"Reading {algo} - {run_name} (Latest)...")
+            logger.info("Reading %s - %s (Latest)...", algo, run_name)
             df = extract_scalar_from_event(event_file, tag=metric)
             if df is not None:
                 df["algorithm"] = algo
@@ -54,7 +60,7 @@ def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean"):
                 data.append(df)
 
     if not data:
-        print(f"No data found for metric {metric}")
+        logger.warning("No data found for metric %s", metric)
         return
 
     full_df = pd.concat(data, ignore_index=True)
@@ -72,7 +78,7 @@ def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean"):
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"comparison_{metric.replace('/', '_')}.png")
     plt.savefig(output_path, dpi=150)
-    print(f"Comparison plot saved to {output_path}")
+    logger.info("Comparison plot saved to %s", output_path)
 
     # Generate detailed plots per algorithm
     plot_algorithm_metrics(env_name, log_root, output_dir)
@@ -92,7 +98,7 @@ def plot_algorithm_metrics(env_name, log_root, output_dir):
         if not os.path.isdir(algo_path):
             continue
             
-        print(f"Generating detailed plots for {algo}...")
+        logger.info("Generating detailed plots for %s...", algo)
         
         # Collect data for this algo (only latest run)
         runs = [os.path.join(algo_path, d) for d in os.listdir(algo_path) if os.path.isdir(os.path.join(algo_path, d))]
@@ -142,4 +148,4 @@ def plot_algorithm_metrics(env_name, log_root, output_dir):
             path = os.path.join(output_dir, filename)
             plt.savefig(path, dpi=150)
             plt.close()
-            print(f"  Saved {filename}")
+            logger.info("Saved %s", filename)

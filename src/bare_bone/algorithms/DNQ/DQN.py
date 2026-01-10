@@ -6,9 +6,13 @@ import torch.optim as optim
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import logging
+from src.logging_utils import setup_logging
 
 SAVE_BEST_MODEL = True
 LOAD_BEST_MODEL = True
+
+logger = logging.getLogger(__name__)
 
 class DeepQNetwork(nn.Module):
     """Implementacja sieci neuronowej DQN do uczenia przez wzmacnianie.
@@ -34,7 +38,8 @@ class DeepQNetwork(nn.Module):
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
         self.loss = nn.MSELoss()
         self.device = T.device('cuda' if T.cuda.is_available() else 'cpu')
-        print(f"Using device: {self.device}")
+        setup_logging(None, __name__)
+        logger.info("Using device: %s", self.device)
         self.to(self.device)
 
     def forward(self, state):
@@ -81,9 +86,9 @@ class Agent():
         if os.path.exists(self.path) and LOAD_BEST_MODEL:
             self.Q_eval.load_state_dict(T.load(self.path, map_location=self.Q_eval.device))
             self.best_Q_eval.to(self.Q_eval.device)
-            print(f"Model załadowany z pliku: {self.path}")
+            logger.info("Model zaladowany z pliku: %s", self.path)
         else:
-            print("Brak zapisanego modelu – uruchamianie od zera.")
+            logger.info("Brak zapisanego modelu - uruchamianie od zera.")
 
         self.state_memory = np.zeros((self.mem_size, input_dims), dtype=np.float32)
         self.new_state_memory = np.zeros((self.mem_size, input_dims), dtype=np.float32)

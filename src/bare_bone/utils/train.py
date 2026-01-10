@@ -1,11 +1,13 @@
 import gymnasium as gym
 import os
 import torch as T
+import logging
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import StopTrainingOnMaxEpisodes, EvalCallback, CallbackList
 
 from src.utils.discrete_actions_wrapper import DiscreteActionsWrapper
+from src.logging_utils import setup_logging
 
 from src.algorithms.DNQ.DNQ_baseline import DQN
 from src.algorithms.A2C.A2C import A2C
@@ -17,6 +19,8 @@ ALGO_MAP = {
     "a2c": A2C,
     "ppo": PPO,
 }
+
+logger = logging.getLogger(__name__)
 
 # Map simple environment names to Gym IDs
 ENV_MAP = {
@@ -35,7 +39,10 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
         raise ValueError(f"Unknown environment: {env_name}. Available: {list(ENV_MAP.keys())}")
 
     gym_env_id = ENV_MAP[env_name]
-    print(f"Starting training with {algo_name.upper()} on {gym_env_id}...")
+    log_file = os.path.join(env_name, "logs", algo_name, "train.log")
+    setup_logging(log_file, __name__)
+    os.environ["AI_PLAY_LOG_PATH"] = log_file
+    logger.info("Starting training with %s on %s...", algo_name.upper(), gym_env_id)
 
     # Create directories for saving models and logs
     model_dir = f"{env_name}/models/{algo_name}"
@@ -60,7 +67,7 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     else:
         policy_type = "MlpPolicy"
     
-    print(f"Using policy: {policy_type}")
+    logger.info("Using policy: %s", policy_type)
 
     # Initialize Agent
     AlgoClass = ALGO_MAP[algo_name]
@@ -97,7 +104,7 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
 
     # Episode Limit Callback
     if total_episodes is not None:
-        print(f"Training for {total_episodes} episodes (ignoring timesteps limit)...")
+        logger.info("Training for %s episodes (ignoring timesteps limit)...", total_episodes)
         stop_train_callback = StopTrainingOnMaxEpisodes(max_episodes=total_episodes, verbose=1)
         callbacks.append(stop_train_callback)
         
@@ -106,7 +113,7 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     else:
         if total_timesteps is None:
              total_timesteps = 100000
-        print(f"Training for {total_timesteps} timesteps...")
+        logger.info("Training for %s timesteps...", total_timesteps)
     
     # Combine callbacks
     callback = CallbackList(callbacks)
@@ -116,10 +123,10 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
     # Ensure existence of best_model.zip
     best_model_path = os.path.join(model_dir, "best_model.zip")
     if not os.path.exists(best_model_path):
-        print(f"Warning: Best model not found (eval callback might not have triggered). Saving final model as best model.")
+        logger.warning("Best model not found (eval callback might not have triggered). Saving final model as best model.")
         agent.save(best_model_path)
     else:
-        print(f"Best model already saved at {best_model_path}")
+        logger.info("Best model already saved at %s", best_model_path)
 
     # Removed explicit saving of final_model.zip to satisfy request for single model only.
     

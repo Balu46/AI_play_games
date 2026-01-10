@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 import seaborn as sns
+import logging
+from src.logging_utils import setup_logging
+
+logger = logging.getLogger(__name__)
 
 def extract_scalar_from_event(event_file, tag="rollout/ep_rew_mean"):
     ea = EventAccumulator(event_file)
@@ -93,10 +97,12 @@ def _latest_run_with_metric(runs, preferred_tags):
     df, used_tag = _pick_metric_from_event(latest_event, preferred_tags)
     return latest_run, df, latest_event, used_tag
 
-def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean", smooth_window: int = 6):
+def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean", smooth_window: int = 6, plot_tag: str = None):
+    log_file = os.path.join(env_name, "logs", "plot.log")
+    setup_logging(log_file, __name__)
     log_root = f"{env_name}/logs"
     if not os.path.exists(log_root):
-        print(f"No logs found for {env_name} at {log_root}")
+        logger.warning("No logs found for %s at %s", env_name, log_root)
         return
 
     data = []
@@ -120,7 +126,7 @@ def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean", smooth_win
         if best_df is not None:
             run_name = os.path.basename(best_run)
             tag_label = used_tag if used_tag else metric
-            print(f"Reading {algo} - {run_name} (Latest run, {len(best_df)} points, tag={tag_label})...")
+            logger.info("Reading %s - %s (Latest run, %s points, tag=%s)...", algo, run_name, len(best_df), tag_label)
             best_df = _smooth_series(best_df, smooth_window)
             best_df = _normalize_steps(best_df)
             best_df["algorithm"] = algo
@@ -128,7 +134,7 @@ def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean", smooth_win
             data.append(best_df)
 
     if not data:
-        print(f"No data found for metric {metric}")
+        logger.warning("No data found for metric %s", metric)
         return
 
     full_df = pd.concat(data, ignore_index=True)
@@ -143,10 +149,12 @@ def plot_training(env_name: str, metric: str = "rollout/ep_rew_mean", smooth_win
     
     # Save comparison plot
     output_dir = f"{env_name}/debug_out"
+    if plot_tag:
+        output_dir = f"{output_dir}_{plot_tag}"
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, f"comparison_{metric.replace('/', '_')}.png")
     plt.savefig(output_path, dpi=150)
-    print(f"Comparison plot saved to {output_path}")
+    logger.info("Comparison plot saved to %s", output_path)
 
     # Generate detailed plots per algorithm
     plot_algorithm_metrics(env_name, log_root, output_dir, smooth_window=smooth_window)
@@ -166,7 +174,7 @@ def plot_algorithm_metrics(env_name, log_root, output_dir, smooth_window: int = 
         if not os.path.isdir(algo_path):
             continue
             
-        print(f"Generating detailed plots for {algo}...")
+        logger.info("Generating detailed plots for %s...", algo)
         
         # Collect data for this algo (use latest run with reward points)
         runs = [os.path.join(algo_path, d) for d in os.listdir(algo_path) if os.path.isdir(os.path.join(algo_path, d))]
@@ -231,4 +239,4 @@ def plot_algorithm_metrics(env_name, log_root, output_dir, smooth_window: int = 
             path = os.path.join(output_dir, filename)
             plt.savefig(path, dpi=150)
             plt.close()
-            print(f"  Saved {filename}")
+            logger.info("Saved %s", filename)

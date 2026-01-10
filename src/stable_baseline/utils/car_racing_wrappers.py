@@ -6,6 +6,27 @@ from stable_baselines3.common.vec_env import VecFrameStack
 
 from src.stable_baseline.utils.discrete_actions_wrapper import DiscreteActionsWrapper
 
+import numpy as np
+import gymnasium as gym
+
+class CarRacingActionRescale(gym.ActionWrapper):
+    """
+    Mapuje akcje z Box([-1,-1,-1],[1,1,1]) na:
+      steering in [-1,1]
+      gas in [0,1]
+      brake in [0,1]
+    """
+    def __init__(self, env):
+        super().__init__(env)
+
+    def action(self, a):
+        a = np.asarray(a, dtype=np.float32)
+        steer = np.clip(a[0], -1.0, 1.0)
+        gas   = np.clip((a[1] + 1.0) / 2.0, 0.0, 1.0)
+        brake = np.clip((a[2] + 1.0) / 2.0, 0.0, 1.0)
+        return np.array([steer, gas, brake], dtype=np.float32)
+
+
 def _resize_nearest(obs: np.ndarray, size=(84, 84)) -> np.ndarray:
     h, w = obs.shape[:2]
     new_h, new_w = size
@@ -39,8 +60,14 @@ def build_car_racing_wrapper(use_discrete_actions: bool):
     def _wrapper(env: gym.Env) -> gym.Env:
         if use_discrete_actions:
             env = DiscreteActionsWrapper(env)
+        else:   
+            env = CarRacingActionRescale(env)
+            
         return _apply_image_preprocess(env)
+    
     return _wrapper
 
 def apply_frame_stack(vec_env, n_stack: int = 4):
     return VecFrameStack(vec_env, n_stack=n_stack, channels_order="first")
+
+

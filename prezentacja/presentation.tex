@@ -10,6 +10,10 @@
 \usepackage{amsmath}
 \usepackage{subcaption}
 
+\newcommand{\ChartLarge}[1]{\includegraphics[width=0.85\textwidth,height=0.48\textheight,keepaspectratio]{#1}}
+\newcommand{\ChartMedium}[1]{\includegraphics[width=\textwidth,height=0.32\textheight,keepaspectratio]{#1}}
+\newcommand{\ChartSmall}[1]{\includegraphics[width=\textwidth,height=0.24\textheight,keepaspectratio]{#1}}
+
 \title{Optymalizacja Agentów RL w Środowiskach Gier}
 \subtitle{Teoria i Praktyka: DQN, A2C, PPO}
 \author{Jan}
@@ -59,13 +63,13 @@
 \end{frame}
 
 \section{Analiza Danych (EDA)}
-\begin{frame}{4. EDA w RL}
+
+\begin{frame}{4. EDA w RL - Co analizujemy}
+    W RL nie ma klas, a dane powstaja w trakcie interakcji. EDA oznacza analiza trajektorii i rozkladow nagrod:
     \begin{itemize}
-        \item \textbf{Metryki z TensorBoard:} \texttt{rollout/ep\_rew\_mean}, \texttt{train/loss} lub \texttt{train/value\_loss}.
-        \item \textbf{Eksploracja DQN:} śledzenie \texttt{rollout/exploration\_rate}.
-        \item \textbf{Wykresy porównawcze:} automatyczne generowanie \texttt{debug\_out/comparison\_*} z najnowszych runów.
-        \item \textbf{Oś X:} normalizacja kroków do startu od 0.
-        \item \textbf{Trend stabilności:} analiza nachylenia krzywych reward/loss w czasie.
+        \item \textbf{Rozklad zwrotow (episodic return):} histogram nagrod z ewaluacji.
+        \item \textbf{Dlugosc epizodow:} rozklad dlugosci epizodow jako proxy stabilnosci.
+        \item \textbf{Zaleznosci:} zestawienie return vs czas treningu (trend) i return vs epsilon (DQN).
     \end{itemize}
 \end{frame}
 
@@ -123,27 +127,11 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{DQN - Problemy}
-    \begin{itemize}
-        \item \textbf{Zapominanie doświadczeń:} nowe epizody nadpisują wcześniejsze umiejętności.
-        \item \textbf{Korelacja doświadczeń:} agent uczy się sekwencji akcji zamiast reagować na bieżący stan.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{DQN - Rozwiązania}
-    \begin{itemize}
-        \item Rozdzielenie eksploracji i nauki przez bufor doświadczeń.
-        \item Zapis epizodów do kolejki o maksymalnym rozmiarze.
-        \item Losowy dobór próbek do uczenia, co redukuje korelacje i zapominanie.
-    \end{itemize}
-\end{frame}
-
 \begin{frame}{DQN - Kluczowe mechanizmy}
     \begin{itemize}
-        \item \textbf{Równanie Bellmana:} $Q(s,a) \leftarrow r + \gamma \max_{a'} Q(s',a')$.
         \item \textbf{Target Network:} osobna sieć do obliczania celu stabilizuje uczenie.
+        \item \textbf{Replay Buffer:} przechowuje doświadczenia i umożliwia losowe próbkowanie, co zmniejsza korelacje.
         \item \textbf{Eksploracja $\epsilon$-greedy:} kontrola kompromisu eksploracja/eksploatacja.
-        \item \textbf{Double DQN:} rozdzielenie wyboru i oceny akcji zmniejsza zawyżanie $Q$.
     \end{itemize}
 \end{frame}
 
@@ -170,22 +158,6 @@
     Jest to forma analogiczna do strategii gradientowej.
 \end{frame}
 
-\begin{frame}{A2C - Dlaczego działa}
-    \begin{itemize}
-        \item \textbf{Błąd TD:} $r_t + \gamma V(s_{t+1}) - V(s_t)$ szybko przenosi informację o nagrodzie.
-        \item \textbf{N-step returns:} łączy stabilność TD i informację z dłuższych trajektorii.
-        \item \textbf{Entropia polityki:} bonus za różnorodność działań zapobiega zbyt wczesnej zbieżności.
-        \item \textbf{Równoległe środowiska:} redukują korelacje i przyspieszają zbieranie danych.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{A2C - Replay i równoległość}
-    \begin{itemize}
-        \item Uczenie równoległe na wielu środowiskach zamiast klasycznego replay.
-        \item Kroki: ruch w każdym środowisku, gradienty lokalne, średni gradient, aktualizacja strategii.
-        \item Alternatywnie: dodatkowa sieć do aktualizacji wag (zysk na GPU).
-    \end{itemize}
-\end{frame}
 
 \subsection{PPO (Proximal Policy Optimization)}
 \begin{frame}{Proximal Policy Optimization (PPO)}
@@ -221,14 +193,6 @@
     $$ Loss = \mathbb{E}_t[L_V - c_1 L_{clip} + c_2 S[\pi](s_t)] $$
 \end{frame}
 
-\begin{frame}{PPO - Stabilność i praktyka}
-    \begin{itemize}
-        \item \textbf{Clipping} działa jak miękki ogranicznik kroku uczenia.
-        \item \textbf{GAE ($\lambda$):} wygładza estymację przewagi i zmniejsza wariancję.
-        \item \textbf{Minibatch SGD:} kilka epok po tych samych danych zwiększa stabilność.
-        \item \textbf{Monitorowanie KL:} zbyt duża dywergencja oznacza zbyt agresywne aktualizacje.
-    \end{itemize}
-\end{frame}
 
 \section{Kluczowe Hiperparametry}
 \begin{frame}{Kluczowe Hiperparametry - Wspólne}
@@ -261,7 +225,7 @@
     Obecnie Optuna optymalizuje z metryką hold-out (niezależne seedy), co redukuje przeuczenie do jednej ewaluacji.
     \begin{itemize}
         \item \textbf{Cel optymalizacji:} holdout/mean\_reward.
-        \item \textbf{Budżet:} domyślnie 30 prób, 100k kroków na próbę.
+        \item \textbf{Budżet:} domyślnie 10 prób, 100k kroków na próbę (CLI); skrypt batch używa wartości per środowisko.
         \item \textbf{Różne algorytmy:} osobne przestrzenie hiperparametrów dla DQN oraz PPO/A2C.
     \end{itemize}
 \end{frame}
@@ -269,10 +233,10 @@
 \section{Trening i Ewaluacja}
 \begin{frame}{Trening Modeli}
     \begin{itemize}
-        \item \textbf{Budżet treningu:} konfigurowalny w \texttt{config.json} (aktualnie 5000 kroków).
+        \item \textbf{Budżet treningu:} konfigurowalny w \texttt{config.json} (aktualnie 5 000 000 kroków).
         \item \textbf{Podział środowisk:} trening seed=0, ewaluacja seed=42, hold-out seed=1000.
         \item \textbf{Early stopping:} patience=20 w CarRacing, minimalny próg kroków (500k dla CarRacing, 100k dla pozostałych).
-        \item \textbf{Optymalizacja:} Optuna (domyślnie 30 prób, 100k kroków na próbę).
+        \item \textbf{Optymalizacja:} Optuna (domyślnie 10 prób, 100k kroków na próbę w CLI; batch ma inne wartości).
     \end{itemize}
 \end{frame}
 
@@ -301,36 +265,110 @@
         \item \textbf{Preprocessing CarRacing:} grayscale + resize + frame stacking (4).
         \item \textbf{Dyskretyzacja akcji:} tylko dla DQN w CarRacing.
         \item \textbf{DQN buffer size:} redukcja do 50k dla danych obrazowych.
-        \item \textbf{Tuning Optuna:} LR $10^{-5}$--$10^{-2}$, $\gamma$ 0.9--0.9999, batch 16--512.
+        \item \textbf{Tuning Optuna:} LR $10^{-5}$--$10^{-2}$, $\gamma$ 0.9--0.9999, batch 16--512, itd.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{LunarLander - Porównanie Algorytmów}
     \begin{figure}
         \centering
-        \includegraphics[width=0.85\textwidth]{../lunar_lander/debug_out/comparison_rollout_ep_rew_mean.png}
+        \ChartLarge{../lunar_lander/debug_out/comparison_rollout_ep_rew_mean.png}
         \caption{Średnia nagroda w epizodzie dla LunarLander (najnowsze runy).}
     \end{figure}
 \end{frame}
 
-\begin{frame}{LunarLander - PPO Szczegóły}
+\section{Porównanie i Wyniki}
+
+\begin{frame}{CartPole - Porównanie Algorytmów}
     \begin{figure}
         \centering
-        \begin{subfigure}{0.45\textwidth}
+        \ChartLarge{../cart_pole/debug_out/comparison_rollout_ep_rew_mean.png}
+        \caption{Średnia nagroda w epizodzie (Rollout Ep Reward Mean) dla algorytmów PPO, A2C i DQN.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{CarRacing - Porównanie Algorytmów}
+    \begin{figure}
+        \centering
+        \ChartLarge{../car_racing/debug_out/comparison_rollout_ep_rew_mean.png}
+        \caption{Porównanie średniej nagrody w środowisku CarRacing.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{DQN - Epsilon Decay (Porownanie)}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.32\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{../lunar_lander/debug_out/ppo_reward.png}
-            \caption{PPO Reward (Szybka zbieżność)}
+            \ChartSmall{../cart_pole/debug_out/dqn_epsilon.png}
+            \caption{CartPole}
         \end{subfigure}
         \hfill
-        \begin{subfigure}{0.45\textwidth}
+        \begin{subfigure}{0.32\textwidth}
             \centering
-            \includegraphics[width=\textwidth]{../lunar_lander/debug_out/ppo_loss.png}
-            \caption{PPO Loss}
+            \ChartSmall{../lunar_lander/debug_out/dqn_epsilon.png}
+            \caption{LunarLander}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.32\textwidth}
+            \centering
+            \ChartSmall{../car_racing/debug_out/dqn_epsilon.png}
+            \caption{CarRacing}
         \end{subfigure}
     \end{figure}
 \end{frame}
 
-\section{Porównanie i Wyniki}
+\begin{frame}{Optuna - DQN: Najlepsze parametry}
+    \begin{table}
+        \centering
+        \scriptsize
+        \begin{tabular}{|l|p{0.8\textwidth}|}
+        \hline
+        \textbf{Środowisko} & \textbf{Parametry} \\ \hline
+        CartPole & learning\_rate=0.0001793261, gamma=0.9534737990, net\_arch=medium, batch\_size=16, optimizer\_class=RMSprop, activation\_fn=Tanh, weight\_decay=0.0000216215, target\_update\_interval=1000, train\_freq=16, gradient\_steps=2, exploration\_fraction=0.4929325775, exploration\_final\_eps=0.0154726366 \\ \hline
+        LunarLander & learning\_rate=0.0082072604, gamma=0.9897746172, net\_arch=tiny, batch\_size=32, optimizer\_class=Adam, activation\_fn=ReLU, weight\_decay=0.0000032910, target\_update\_interval=1000, train\_freq=16, gradient\_steps=4, exploration\_fraction=0.3144025881, exploration\_final\_eps=0.0910880037 \\ \hline
+        CarRacing & learning\_rate=0.0000119164, gamma=0.9907858308, net\_arch=medium, batch\_size=512, optimizer\_class=AdamW, activation\_fn=ELU, weight\_decay=0.0002437466, target\_update\_interval=10000, train\_freq=16, gradient\_steps=4, exploration\_fraction=0.3792097857, exploration\_final\_eps=0.0774892213 \\ \hline
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Optuna - A2C: Najlepsze parametry}
+    \begin{table}
+        \centering
+        \scriptsize
+        \begin{tabular}{|l|p{0.8\textwidth}|}
+        \hline
+        \textbf{Środowisko} & \textbf{Parametry} \\ \hline
+        CartPole & learning\_rate=0.0000156660, gamma=0.9740529111, net\_arch=small, optimizer\_class=Adam, activation\_fn=ReLU, weight\_decay=0.0000019809, ent\_coef=0.0000094432, vf\_coef=0.6361241406, max\_grad\_norm=2.6224568685, gae\_lambda=0.9582131557, n\_steps=10 \\ \hline
+        LunarLander & learning\_rate=0.0033341384, gamma=0.9278734325, net\_arch=tiny, optimizer\_class=AdamW, activation\_fn=ELU, weight\_decay=0.0000034479, ent\_coef=0.0001556883, vf\_coef=0.2646656918, max\_grad\_norm=1.8644929648, gae\_lambda=0.8640325836, n\_steps=100 \\ \hline
+        CarRacing & learning\_rate=0.0000491340, gamma=0.9783137151, net\_arch=medium, optimizer\_class=RMSprop, activation\_fn=ReLU, weight\_decay=0.0000288824, ent\_coef=0.0068872672, vf\_coef=0.6833129830, max\_grad\_norm=4.2683798523, gae\_lambda=0.9238527733, n\_steps=5 \\ \hline
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Optuna - PPO: Najlepsze parametry}
+    \begin{table}
+        \centering
+        \scriptsize
+        \begin{tabular}{|l|p{0.8\textwidth}|}
+        \hline
+        \textbf{Środowisko} & \textbf{Parametry} \\ \hline
+        CartPole & learning\_rate=0.0011687224, gamma=0.9640504137, net\_arch=medium, batch\_size=512, optimizer\_class=RMSprop, activation\_fn=ReLU, weight\_decay=0.0000045619, ent\_coef=0.0000000143, vf\_coef=0.2781731853, max\_grad\_norm=2.6276624082, gae\_lambda=0.8823810760, n\_steps=256 \\ \hline
+        LunarLander & learning\_rate=0.0010775910, gamma=0.9000274166, net\_arch=medium, batch\_size=256, optimizer\_class=AdamW, activation\_fn=ELU, weight\_decay=0.0000041068, ent\_coef=0.0644108211, vf\_coef=0.2526720688, max\_grad\_norm=3.3079899133, gae\_lambda=0.8072870163, n\_steps=256 \\ \hline
+        CarRacing & learning\_rate=0.0001827441, gamma=0.9936572526, net\_arch=tiny, batch\_size=512, optimizer\_class=RMSprop, activation\_fn=ReLU, weight\_decay=0.0000273247, ent\_coef=0.0000911546, vf\_coef=0.6395007879, max\_grad\_norm=0.7945144926, gae\_lambda=0.9085099950, n\_steps=128 \\ \hline
+        \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}{Wyniki Optymalizacji z Optuna}
+    Wyniki zależą od środowiska i długości triali. Aktualnie optymalizacja:
+    \begin{itemize}
+        \item wybiera parametry na podstawie \textbf{hold-out mean reward},
+        \item używa 100k kroków na próbę w CLI (batch: env-specific),
+        \item ogranicza ryzyko przeuczenia do jednego seeda.
+    \end{itemize}
+\end{frame}
+
 \begin{frame}{Porównanie Algorytmów w Projekcie}
     \begin{table}[]
         \begin{tabular}{|l|l|l|l|}
@@ -342,142 +380,6 @@
         Sample Eff. & \textbf{Wysoka} (Replay) & Średnia & Niska \\ \hline
         \end{tabular}
     \end{table}
-\end{frame}
-
-\begin{frame}{Wyniki Optymalizacji z Optuna}
-    Wyniki zależą od środowiska i długości triali. Aktualnie optymalizacja:
-    \begin{itemize}
-        \item wybiera parametry na podstawie \textbf{hold-out mean reward},
-        \item używa dłuższych triali (100k kroków),
-        \item ogranicza ryzyko przeuczenia do jednego seeda.
-    \end{itemize}
-\end{frame}
-
-
-\begin{frame}{CartPole - Porównanie Algorytmów}
-    \begin{figure}
-        \centering
-        \includegraphics[width=0.85\textwidth]{../cart_pole/debug_out/comparison_rollout_ep_rew_mean.png}
-        \caption{Średnia nagroda w epizodzie (Rollout Ep Reward Mean) dla algorytmów PPO, A2C i DQN.}
-    \end{figure}
-\end{frame}
-
-\begin{frame}{CartPole - Szczegóły Treningu}
-    \begin{figure}
-        \centering
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_reward.png}
-            \caption{DQN Reward}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../cart_pole/debug_out/a2c_reward.png}
-            \caption{A2C Reward}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../cart_pole/debug_out/ppo_reward.png}
-            \caption{PPO Reward}
-        \end{subfigure}
-
-        \vspace{0.5cm}
-
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_loss.png}
-            \caption{DQN Loss}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../cart_pole/debug_out/ppo_loss.png}
-            \caption{PPO Loss}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_epsilon.png}
-            \caption{DQN Epsilon}
-        \end{subfigure}
-    \end{figure}
-\end{frame}
-
-\begin{frame}{DQN - Epsilon Decay (Porownanie)}
-    \begin{figure}
-        \centering
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../cart_pole/debug_out/dqn_epsilon.png}
-            \caption{CartPole}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../lunar_lander/debug_out/dqn_epsilon.png}
-            \caption{LunarLander}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../car_racing/debug_out/dqn_epsilon.png}
-            \caption{CarRacing}
-        \end{subfigure}
-    \end{figure}
-\end{frame}
-
-
-\begin{frame}{CarRacing - Porównanie Algorytmów}
-    \begin{figure}
-        \centering
-        \includegraphics[width=0.85\textwidth]{../car_racing/debug_out/comparison_rollout_ep_rew_mean.png}
-        \caption{Porównanie średniej nagrody w środowisku CarRacing.}
-    \end{figure}
-\end{frame}
-
-\begin{frame}{CarRacing - Szczegóły Treningu}
-    \begin{figure}
-        \centering
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../car_racing/debug_out/dqn_reward.png}
-            \caption{DQN Reward}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../car_racing/debug_out/a2c_reward.png}
-            \caption{A2C Reward}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../car_racing/debug_out/ppo_reward.png}
-            \caption{PPO Reward}
-        \end{subfigure}
-
-        \vspace{0.5cm}
-
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../car_racing/debug_out/dqn_loss.png}
-            \caption{DQN Loss}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../car_racing/debug_out/a2c_loss.png}
-            \caption{A2C Loss}
-        \end{subfigure}
-        \hfill
-        \begin{subfigure}{0.32\textwidth}
-            \centering
-            \includegraphics[width=\textwidth]{../car_racing/debug_out/ppo_loss.png}
-            \caption{PPO Loss}
-        \end{subfigure}
-    \end{figure}
 \end{frame}
 
 \section{Podsumowanie}
