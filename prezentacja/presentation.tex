@@ -16,7 +16,7 @@
 
 \title{Optymalizacja Agentów RL w Środowiskach Gier}
 \subtitle{Teoria i Praktyka: DQN, A2C, PPO}
-\author{Jan}
+\author{Jan Zakroczymski, Jan Zadrąg, Sławek Brzózka}
 \date{\today}
 
 \begin{document}
@@ -32,7 +32,7 @@
 \section{Definicja Problemu}
 \begin{frame}{1. Definicja Problemu i Cel}
     \textbf{Cel Projektu:} \\
-    Stworzenie i optymalizacja agentów Uczenia ze Wzmocnieniem (RL) dla środowisk Gymnasium (\texttt{LunarLander}, \texttt{CarRacing}, \texttt{CartPole}).
+    Stworzenie i optymalizacja agentów uczenia ze wzmocnieniem (ang. RL) dla środowisk Gymnasium (\texttt{LunarLander}, \texttt{CarRacing}, \texttt{CartPole}).
 
     \vspace{0.5cm}
     \textbf{Wyzwanie:} \\
@@ -47,28 +47,28 @@
 \begin{frame}{2. Dane w RL i Źródła}
     \begin{itemize}
         \item \textbf{Źródło danych:} interakcja agenta ze środowiskiem Gymnasium (symulator).
-        \item \textbf{Dane są generowane online:} trajektorie powstają w czasie treningu.
+        \item \textbf{Dane są generowane online:} kolejne stany powstają w czasie treningu.
         \item \textbf{Różne przestrzenie stanów:} wektor stanu (CartPole, LunarLander) vs obraz RGB 96x96 (CarRacing).
-        \item \textbf{Powtarzalność:} seed=0 trening, seed=42 ewaluacja, seed=1000 hold-out.
+        \item \textbf{Powtarzalność:} ustalony seed dla treningu, ewaluacji oraz optymalizacji hiperparametrów.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{3. Przygotowanie Danych}
     \begin{itemize}
         \item \textbf{Preprocessing CarRacing:} grayscale + resize do 84x84 + frame stacking (4 klatki).
-        \item \textbf{Normalizacja obrazu:} wejście jest normalizowane wewnątrz modelu (normalize\_images).
+        \item \textbf{Normalizacja obrazu:} model normalizuje piksele na wejsciu.
         \item \textbf{Dostosowanie akcji:} dyskretyzacja sterowania tylko dla DQN w CarRacing.
-        \item \textbf{Wektoryzacja środowisk:} DummyVecEnv; A2C (16 env), PPO (8 env).
+        \item \textbf{Wektoryzacja środowisk:} DQN(1 env), A2C (16 env), PPO (8 env).
     \end{itemize}
 \end{frame}
 
 \section{Analiza Danych (EDA)}
 
 \begin{frame}{4. EDA w RL - Co analizujemy}
-    W RL nie ma klas, a dane powstaja w trakcie interakcji. EDA oznacza analiza trajektorii i rozkladow nagrod:
+    W RL nie ma klas, a dane powstaja w trakcie interakcji. EDA oznacza analize trajektorii i rozkladów nagród w czasie:
     \begin{itemize}
-        \item \textbf{Rozklad zwrotow (episodic return):} histogram nagrod z ewaluacji.
-        \item \textbf{Dlugosc epizodow:} rozklad dlugosci epizodow jako proxy stabilnosci.
+        \item \textbf{Rozkład nagród wczasie (episodic return):} wykresach sumy nagród względem kroków symulacji.
+        \item \textbf{Dlugosc epizodow:} rozkład długosci epizodów jako proxy stabilnosci.
         \item \textbf{Zaleznosci:} zestawienie return vs czas treningu (trend) i return vs epsilon (DQN).
     \end{itemize}
 \end{frame}
@@ -269,31 +269,64 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{LunarLander - Porównanie Algorytmów}
-    \begin{figure}
-        \centering
-        \ChartLarge{../lunar_lander/debug_out/comparison_rollout_ep_rew_mean.png}
-        \caption{Średnia nagroda w epizodzie dla LunarLander (najnowsze runy).}
-    \end{figure}
-\end{frame}
 
 \section{Porównanie i Wyniki}
 
-\begin{frame}{CartPole - Porównanie Algorytmów}
+\subsection{Optymalizacja vs bez}
+\begin{frame}{LunarLander}
     \begin{figure}
         \centering
-        \ChartLarge{../cart_pole/debug_out/comparison_rollout_ep_rew_mean.png}
-        \caption{Średnia nagroda w epizodzie (Rollout Ep Reward Mean) dla algorytmów PPO, A2C i DQN.}
+        \begin{subfigure}{0.49\textwidth}
+            \centering
+            \ChartMedium{../cart_pole/debug_out_no_opt/comparison_rollout_ep_rew_mean.png}
+            \caption{Bez optymalizacji}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.49\textwidth}
+            \centering
+            \ChartMedium{../cart_pole/debug_out/comparison_rollout_ep_rew_mean.png}
+            \caption{Po optymalizacji}
+        \end{subfigure}
+        \caption{CartPole: porownanie sredniej nagrody w epizodzie.}
     \end{figure}
 \end{frame}
 
-\begin{frame}{CarRacing - Porównanie Algorytmów}
+\begin{frame}{LunarLander}
     \begin{figure}
         \centering
-        \ChartLarge{../car_racing/debug_out/comparison_rollout_ep_rew_mean.png}
-        \caption{Porównanie średniej nagrody w środowisku CarRacing.}
+        \begin{subfigure}{0.49\textwidth}
+            \centering
+            \ChartMedium{../lunar_lander/debug_out_no_opt/comparison_rollout_ep_rew_mean.png}
+            \caption{Bez optymalizacji}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.49\textwidth}
+            \centering
+            \ChartMedium{../lunar_lander/debug_out/comparison_rollout_ep_rew_mean.png}
+            \caption{Po optymalizacji}
+        \end{subfigure}
+        \caption{LunarLander: porownanie sredniej nagrody w epizodzie.}
     \end{figure}
 \end{frame}
+
+\begin{frame}{CarRacing}
+    \begin{figure}
+        \centering
+        \begin{subfigure}{0.49\textwidth}
+            \centering
+            \ChartMedium{../car_racing/debug_out_no_opt/comparison_rollout_ep_rew_mean.png}
+            \caption{Bez optymalizacji}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.49\textwidth}
+            \centering
+            \ChartMedium{../car_racing/debug_out/comparison_rollout_ep_rew_mean.png}
+            \caption{Po optymalizacji}
+        \end{subfigure}
+        \caption{CarRacing: porownanie sredniej nagrody w epizodzie.}
+    \end{figure}
+\end{frame}
+
 
 \begin{frame}{DQN - Epsilon Decay (Porownanie)}
     \begin{figure}

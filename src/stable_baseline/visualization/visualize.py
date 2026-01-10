@@ -25,7 +25,7 @@ ENV_MAP = {
 
 logger = logging.getLogger(__name__)
 
-def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: int = 5):
+def visualize(algo_name: str = None, env_name: str = "lunar_lander", episodes: int = 2):
     """
     Load a trained model and render it in the environment.
     """
