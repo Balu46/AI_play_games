@@ -72,7 +72,6 @@ def objective(trial, args):
             total_timesteps=timesteps,
             total_episodes=None,
             hyperparams=hyperparams,
-            patience=10
         )
         
         return best_reward

@@ -46,7 +46,6 @@ To najważniejszy plik w projekcie. Odpowiada za konfigurację i uruchomienie pr
     3.  **Hiperparametry**: Jeśli podano `hyperparams` (np. z optymalizacji), domyślne ustawienia (learning rate, gamma) są nadpisywane.
     4.  **Callbacki**:
         -   `EvalCallback`: Odpala osobne środowisko (`eval_env`) co X kroków, by sprawdzić jak model sobie radzi bez szumu eksploracji. To on zapisuje `best_model.zip`.
-        -   `StopTrainingOnNoModelImprovement` (**Early Stopping**): Nowość w projekcie. Monitoruje wyniki z `EvalCallback`. Jeśli przez `patience=5` prób wynik nie wzrośnie, przerywa trening. Zapobiega to overattingowi.
 
 **Ważne koncepty**:
 -   **Policy**: `MlpPolicy` to sieć neuronowa operująca na liczbach (np. pozycja wózka). `CnnPolicy` to sieć konwolucyjna (do obrazów), używana np. w `CarRacing`.

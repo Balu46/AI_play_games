@@ -3,7 +3,7 @@ import os
 import torch as T
 import logging
 from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines3.common.callbacks import StopTrainingOnMaxEpisodes, EvalCallback, CallbackList, BaseCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 
@@ -49,7 +49,6 @@ class HoldoutEvalCallback(BaseCallback):
             if self.best_mean_reward is None or mean_reward > self.best_mean_reward:
                 self.best_mean_reward = mean_reward
         return True
-
 class EvalCallbackWithMinSteps(EvalCallback):
     def __init__(self, *args, min_timesteps: int = 0, patience: int = 10, **kwargs):
         super().__init__(*args, **kwargs)
@@ -87,7 +86,7 @@ ENV_MAP = {
     "cart_pole": "CartPole-v1",
 }
 
-def train(algo_name: str, env_name: str, total_timesteps: int = None, total_episodes: int = None, hyperparams: dict = None, patience: int = 5):
+def train(algo_name: str, env_name: str, total_timesteps: int = None, total_episodes: int = None, hyperparams: dict = None):
     """
     Unified training function for PPO, A2C, and DQN.
     """
@@ -126,7 +125,7 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
         gym_env_id,
         n_envs=n_envs,
         seed=0,
-        vec_env_cls=DummyVecEnv,
+        vec_env_cls=SubprocVecEnv,
         wrapper_class=wrapper_class,
         env_kwargs={"render_mode": None},
     )
@@ -134,7 +133,7 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
         gym_env_id,
         n_envs=eval_n_envs,
         seed=42,
-        vec_env_cls=DummyVecEnv,
+        vec_env_cls=SubprocVecEnv,
         wrapper_class=wrapper_class,
         env_kwargs={"render_mode": None},
     )
@@ -142,7 +141,7 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
         gym_env_id,
         n_envs=eval_n_envs,
         seed=1000,
-        vec_env_cls=DummyVecEnv,
+        vec_env_cls=SubprocVecEnv,
         wrapper_class=wrapper_class,
         env_kwargs={"render_mode": None},
     )
@@ -302,18 +301,15 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
         eval_freq = max(eval_freq, total_timesteps // 50)
 
     eval_n_episodes = 10
-    effective_patience = 20 if env_name == "car_racing" else patience
-    eval_callback = EvalCallbackWithMinSteps(
+    eval_callback = EvalCallback(
         eval_env,
         best_model_save_path=model_dir,
         log_path=model_dir,
         eval_freq=eval_freq, # More frequent eval during optimization
         deterministic=True,
-        render=False,
+        render=False,       
         n_eval_episodes=eval_n_episodes,
         verbose=1,
-        min_timesteps=500_000 if env_name == "car_racing" else 100_000,
-        patience=effective_patience,
     )
     callbacks.append(eval_callback)
 

@@ -18,7 +18,14 @@
 \subtitle{Teoria i Praktyka: DQN, A2C, PPO}
 \author{Jan Zakroczymski, Jan Zadrąg, Sławek Brzózka}
 \date{\today}
-
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{
+    \hbox{
+        \begin{beamercolorbox}[wd=\paperwidth,ht=2.25ex,dp=1ex,right]{section in head/foot}
+            \insertframenumber{} / \inserttotalframenumber{} \hspace*{2ex}
+        \end{beamercolorbox}
+    }
+}
 \begin{document}
 
 \begin{frame}
@@ -64,56 +71,59 @@
 
 \section{Analiza Danych (EDA)}
 
-\begin{frame}{4. EDA w RL - Co analizujemy}
-    W RL nie ma klas, a dane powstaja w trakcie interakcji. EDA oznacza analize trajektorii i rozkladów nagród w czasie:
+\begin{frame}{4. EDA w RL}
+    W RL nie ma klas, a dane powstaja w trakcie interakcji. EDA oznacza analize:
     \begin{itemize}
-        \item \textbf{Rozkład nagród wczasie (episodic return):} wykresach sumy nagród względem kroków symulacji.
-        \item \textbf{Dlugosc epizodow:} rozkład długosci epizodów jako proxy stabilnosci.
-        \item \textbf{Zaleznosci:} zestawienie return vs czas treningu (trend) i return vs epsilon (DQN).
+        \item \textbf{Trajektorii:} sekwencji stanów.         
+        \item \textbf{Rozkładu nagród w czasie (episodic return):} wykresach sumy nagród względem kroków symulacji.        
+        \item \textbf{Stabilność względem długosc epizodów:} wykrywanie oscylacji nagród.
+        \item \textbf{Efektywność względem czasu treningu.} 
+        \item \textbf{Epsilon względem czasu (w przypadku DQN).} 
     \end{itemize}
 \end{frame}
 
 \section{Wybór Modelu}
 \begin{frame}{Uzasadnienie Wyboru Modelu}
     \begin{itemize}
-        \item \textbf{DQN:} najlepszy dla dyskretnych akcji i prostszych przestrzeni stanów (CartPole, LunarLander).
-        \item \textbf{PPO:} stabilny algorytm on-policy do akcji ciągłych i dyskretnych (CarRacing).
-        \item \textbf{A2C:} szybka alternatywa dla PPO, testowana jako kompromis szybkość/stabilność.
-        \item \textbf{Cel porównania:} sprawdzenie wpływu typu algorytmu na stabilność i sample efficiency.
+        \item \textbf{DQN:} najlepszy dla dyskretnych akcji i prostszych przestrzeni stanów.
+        \item \textbf{A2C:} prosty algorytm on-policy obsługujący akcje ciągłe.
+        \item \textbf{PPO:} zawaansowana wersja A2C poprawiająca stabilność algorytmu.
     \end{itemize}
 \end{frame}
 
 \section{Podstawy Teoretyczne}
 \begin{frame}{Podstawy Teoretyczne RL}
-    \textbf{Proces Decyzyjny Markova (MDP):}
+    \textbf{RL opiera się na założeniu że rozpatrywany proces jest procesem markova.}
+    \textbf{Przyjęty model środowiska:}
     Agent w stanie $s_t$ podejmuje akcję $a_t$, otrzymuje nagrodę $r_t$ i przechodzi do stanu $s_{t+1}$.
     
     \vspace{0.5cm}
     \textbf{Cel Agenta:}
-    Maksymalizacja oczekiwanej sumy zdyskontowanych nagród:
-    $$ G_t = \sum_{k=0}^{\infty} \gamma^k r_{t+k+1} $$
-    gdzie $\gamma \in [0, 1]$ to czynnik dyskontujący (discount factor).
+    Maksymalizacja sumy zdyskontowanych nagród:
+    $$ G_t = \sum_{k=1}^{\infty} \gamma^k r_{t+k} $$
+    gdzie $\gamma \in [0, 1]$ to współczynnik dyskontujący (discount factor).
 \end{frame}
 
 \begin{frame}{Podstawy Teoretyczne RL - Pojęcia}
     \begin{itemize}
-        \item \textbf{Polityka $\pi(a|s)$:} rozkład akcji w danym stanie (deterministyczna lub stochastyczna).
-        \item \textbf{Funkcja wartości $V^\pi(s)$:} oczekiwany zwrot z danego stanu przy polityce $\pi$.
-        \item \textbf{Funkcja $Q^\pi(s,a)$:} oczekiwany zwrot po wykonaniu akcji $a$ w stanie $s$.
-        \item \textbf{Eksploracja vs eksploatacja:} wybór między nowymi akcjami a tymi już opłacalnymi.
-        \item \textbf{On-policy vs off-policy:} czy dane do uczenia pochodzą z aktualnej polityki.
+        \item \textbf{Polityka $\pi(s)$ lub $\pi(a|s)$:} wybrana akcja lub rozkład akcji w danym stanie.
+        \item \textbf{Funkcja wartości $V_\pi(s)$:} oczekiwany zwrot z danego stanu przy polityce $\pi$.
+        \item \textbf{Funkcja jakości $Q_\pi(s,a)$:} oczekiwany zwrot po wykonaniu akcji $a$ w stanie $s$ przy polityce $\pi$.
+        \item \textbf{Eksploracja vs eksploatacja:} wybór między akcjami o najwyższej ocenie a nowymi.
+        \item \textbf{On-policy vs off-policy:} czy dane do uczenia pochodzą z tylko aktualnej polityki.
+        \item \textbf{Doświadczenie:} czwórka $(s, a, r, s_{next})$ gdzie $s$ - stan obecny, $a$ - akcja, $r$ - nagroda ze środowiska, $s_{next}$ - następny stan.
     \end{itemize}
 \end{frame}
 
-\section{Szczegółowa Teoria Modeli}
+\section{Opisy Rozważanych Modeli}
 
 \subsection{DQN (Deep Q-Network)}
 \begin{frame}{Deep Q-Network (DQN)}
     \begin{itemize}
         \item Deep Q-Network (DQN), nazywany też Deep Q-Learning, to ulepszona wersja Q-Learning.
         \item Zamiast tabeli wartości używa sieci neuronowej, dzięki czemu działa w dużych przestrzeniach stanów.
-        \item Nadal ma problem przy bardzo dużej liczbie możliwych akcji, bo trzeba liczyć $Q$ dla każdej z nich.
-        \item Mimo ograniczeń jest skuteczny i pozwala grać nawet w skomplikowane gry 3D.
+        \item Nie rozwiązuje problemu ciągłych przestrzeni akcji, ponieważ sieć neuronowa ma skończoną liczbę wyjść.
+        \item Mimo ograniczeń jest skuteczny i pozwala grać nawet w skomplikowane gry 3D poprzez dyskretyzacje akcji.
     \end{itemize}
 \end{frame}
 
@@ -123,38 +133,38 @@
     gdzie:
     \begin{itemize}
         \item $Q_{current}$ to wartość $Q$ zwracana przez model dla stanu $s$.
-        \item $Q_{target} = nagroda + \gamma \max(Q(s_{next}))$.
+        \item $Q_{target} = nagroda + \gamma \max\limits_{a}Q(s_{next},a)$.
+        \item nagroda - zwrócona nagroda przez środowisko.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{DQN - Kluczowe mechanizmy}
     \begin{itemize}
-        \item \textbf{Target Network:} osobna sieć do obliczania celu stabilizuje uczenie.
-        \item \textbf{Replay Buffer:} przechowuje doświadczenia i umożliwia losowe próbkowanie, co zmniejsza korelacje.
-        \item \textbf{Eksploracja $\epsilon$-greedy:} kontrola kompromisu eksploracja/eksploatacja.
+        \item \textbf{Target Network:} osobna sieć do obliczania $Q_{target}$ co stabilizuje uczenie.
+        \item \textbf{Replay Buffer:} przechowuje doświadczenia i umożliwia losowe próbkowanie, co zmniejsza korelacje akcji.
+        \item \textbf{Eksploracja $\epsilon$-greedy:} $\epsilon$ zmniejszający się w czasie współczynnik akcji losowych - kompromis pomiędzy eksploracją a eksploatacją.
     \end{itemize}
 \end{frame}
 
 \subsection{A2C (Advantage Actor-Critic)}
 \begin{frame}{Advantage Actor-Critic (A2C)}
     \begin{itemize}
-        \item Hybryda podejścia z polityką i bez polityki.
         \item Składa się z dwóch sieci: \textbf{Aktor} steruje zachowaniem, \textbf{Krytyk} ocenia akcję.
-        \item A2C dyskontuje nagrody na każdym kroku, co stabilizuje ocenę.
+        \item Podejście hybrydowe: łączy zalety on-policy (actor) i off-policy (critic).
+        \item Rozwija algorytm strategii gradientowej.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{A2C - Aktualizacja krytyka}
-    Krytyk używa funkcji wartości $V(s)$:
-    $$ \Delta w = \beta (r_t + \gamma V(s_{t+1}) - V(s_t)) \nabla_w V_w(s_t) $$
-    Użycie $V$ zamiast $Q$ poprawia stabilność uczenia.
+    Krytyk uczy się funkcji wartości $V(s)$ w której wagi są aktualizacjone za pomoca wzoru:
+    $$ \Delta w = \beta (r + \gamma V( s_{next}) - V(s)) \nabla_w V_w(s) $$
 \end{frame}
 
 \begin{frame}{A2C - Aktualizacja aktora}
     Funkcja przewagi:
-    $$ A(s_t, s_{t+1}) = r_t + \gamma V(s_{t+1}) - V(s_t) $$
+    $$ A(s, s_{next}) = r + \gamma V( s_{next}) - V(s) $$
     Aktualizacja aktora:
-    $$ \Delta \theta = \alpha[\nabla(\log \pi(s,a,\theta)) \cdot A(s_t, s_{t+1}) + c\nabla S\pi(s_t)] $$
+    $$ \Delta \theta = \alpha[\nabla(\log \pi(s,a,\theta)) \cdot A(s, s_{next}) + c\nabla S_\pi(s)] $$
     Jest to forma analogiczna do strategii gradientowej.
 \end{frame}
 
@@ -187,10 +197,13 @@
 \begin{frame}{PPO - Funkcje loss}
     \textbf{Loss polityki:}
     $$ L_{clip} = \mathbb{E}_t[\min(r_t(\theta) \cdot A_t, clip(r_t(\theta), \epsilon) \cdot A_t)] $$
+    
+    Wartość powyższej funkcji jest bardzo mocno zależna od $A_t (s_t, s_{t+1})$.
+    
     \textbf{Loss krytyka:}
     $$ L_V = r_t + \gamma V(s_{t+1}) - V(s_t) $$
     \textbf{Loss całkowity:}
-    $$ Loss = \mathbb{E}_t[L_V - c_1 L_{clip} + c_2 S[\pi](s_t)] $$
+    $$ Loss = \mathbb{E}_t[L_V - c_1 L_{clip} + c_2 S_\pi(s_t)] $$
 \end{frame}
 
 
@@ -235,7 +248,6 @@
     \begin{itemize}
         \item \textbf{Budżet treningu:} konfigurowalny w \texttt{config.json} (aktualnie 5 000 000 kroków).
         \item \textbf{Podział środowisk:} trening seed=0, ewaluacja seed=42, hold-out seed=1000.
-        \item \textbf{Early stopping:} patience=20 w CarRacing, minimalny próg kroków (500k dla CarRacing, 100k dla pozostałych).
         \item \textbf{Optymalizacja:} Optuna (domyślnie 10 prób, 100k kroków na próbę w CLI; batch ma inne wartości).
     \end{itemize}
 \end{frame}

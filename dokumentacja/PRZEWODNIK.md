@@ -72,7 +72,6 @@ Po zakończeniu treningu, zajrzyj do folderów wewnątrz katalogu gry (np. `car_
     - **DQN (Deep Q-Network)**: Starszy, klasyczny algorytm. Czasem uczy się szybciej, ale bywa niestabilny.
     - **A2C (Advantage Actor Critic)**: Lżejsza i szybsza wersja, dobra do prostszych zadań.
 - **Timesteps**: Liczba "klatek" lub decyzji, które podjęło AI. Im więcej, tym dłużej trwa nauka.
-- **Early Stopping**: Nowa funkcja, która automatycznie wyłącza trening, gdy AI przestaje się uczyć, oszczędzając Twój czas i prąd.
 
 ---
 

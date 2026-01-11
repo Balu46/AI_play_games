@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 elif args.no_optimized_params:
                     logger.info("Skipping optimized hyperparameters (flag enabled).")
                 
-                train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams, patience=10)
+                train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams)
 
     elif args.mode == "visualize":
         for game in games:
