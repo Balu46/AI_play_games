@@ -14,7 +14,7 @@ TIMESTEPS=0
 
 # Supported lists
 ALL_ENVS=("cart_pole" "lunar_lander" "car_racing")
-ALL_ALGOS=("dqn" "ppo" "a2c")
+ALL_ALGOS=("dqn" "a2c" "ppo")
 
 # Help function
 help() {

@@ -5,6 +5,6 @@
         "a2c",
         "ppo"
     ],
-    "total_timesteps": 3000000,
+    "total_timesteps": 4000000,
     "total_episodes": null
 }
