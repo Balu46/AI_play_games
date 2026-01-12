@@ -1,10 +1,10 @@
 {
-    "game": "all",
+    "game": "lunar_lander",
     "algorithms": [
         "dqn",
         "a2c",
         "ppo"
     ],
-    "total_timesteps": 4000000,
+    "total_timesteps": 10000000,
     "total_episodes": null
 }

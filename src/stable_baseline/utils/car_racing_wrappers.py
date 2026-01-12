@@ -60,8 +60,8 @@ def build_car_racing_wrapper(use_discrete_actions: bool):
     def _wrapper(env: gym.Env) -> gym.Env:
         if use_discrete_actions:
             env = DiscreteActionsWrapper(env)
-        else:   
-            env = CarRacingActionRescale(env)
+        # else:   
+        #     env = CarRacingActionRescale(env)
             
         return _apply_image_preprocess(env)
     

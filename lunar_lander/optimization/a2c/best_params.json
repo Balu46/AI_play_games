@@ -1,14 +1,13 @@
 {
-    "learning_rate": 0.0033341384249050577,
-    "gamma": 0.9278734325443874,
-    "net_arch": "tiny",
-    "batch_size": 512,
-    "optimizer_class": "AdamW",
+    "learning_rate": 0.0015052392049831234,
+    "gamma": 0.9817353315260529,
+    "net_arch": "small",
+    "optimizer_class": "Adam",
+    "weight_decay": 6.67978398826384e-06,
     "activation_fn": "ELU",
-    "weight_decay": 3.4478827818022725e-06,
-    "ent_coef": 0.0001556882575564596,
-    "vf_coef": 0.26466569175977706,
-    "max_grad_norm": 1.864492964809043,
-    "gae_lambda": 0.8640325836342003,
+    "ent_coef": 0.0016188578927777244,
+    "vf_coef": 0.33738182517052606,
+    "max_grad_norm": 0.3795428014654466,
+    "gae_lambda": 0.9528722553182857,
     "n_steps": 100
 }

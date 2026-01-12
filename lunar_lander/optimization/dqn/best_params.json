@@ -1,14 +1,14 @@
 {
-    "learning_rate": 0.006984669583458052,
-    "gamma": 0.9874688566833979,
+    "learning_rate": 0.0030895317944050374,
+    "gamma": 0.9942452944958157,
     "net_arch": "tiny",
-    "optimizer_class": "AdamW",
-    "weight_decay": 9.046572151514961e-07,
+    "optimizer_class": "Adam",
+    "weight_decay": 2.913579154949028e-06,
     "activation_fn": "ReLU",
-    "batch_size": 32,
-    "target_update_interval": 1000,
+    "batch_size": 256,
+    "target_update_interval": 5000,
     "train_freq": 16,
-    "gradient_steps": 1,
-    "exploration_fraction": 0.14699808128008537,
-    "exploration_final_eps": 0.07780723736135867
+    "gradient_steps": 8,
+    "exploration_fraction": 0.256575641774853,
+    "exploration_final_eps": 0.021454808591676026
 }

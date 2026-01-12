@@ -1,14 +1,15 @@
 {
-    "learning_rate": 0.0010775910289204426,
-    "gamma": 0.9000274165943174,
-    "net_arch": "medium",
-    "batch_size": 256,
+    "learning_rate": 0.0006263061438826557,
+    "gamma": 0.9897638689428574,
+    "net_arch": "tiny",
     "optimizer_class": "AdamW",
-    "activation_fn": "ELU",
-    "weight_decay": 4.106767111434226e-06,
-    "ent_coef": 0.0644108211082007,
-    "vf_coef": 0.252672068798513,
-    "max_grad_norm": 3.307989913349079,
-    "gae_lambda": 0.8072870163283236,
-    "n_steps": 256
+    "weight_decay": 2.8745688547671547e-08,
+    "activation_fn": "ReLU",
+    "ent_coef": 5.144251010082038e-05,
+    "vf_coef": 0.7284058947928316,
+    "max_grad_norm": 0.46999474721575524,
+    "gae_lambda": 0.9753815923754151,
+    "n_steps": 1024,
+    "clip_range": 0.19583693975205654,
+    "batch_size": 64
 }

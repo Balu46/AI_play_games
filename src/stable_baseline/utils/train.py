@@ -49,6 +49,7 @@ class HoldoutEvalCallback(BaseCallback):
             if self.best_mean_reward is None or mean_reward > self.best_mean_reward:
                 self.best_mean_reward = mean_reward
         return True
+
 class EvalCallbackWithMinSteps(EvalCallback):
     def __init__(self, *args, min_timesteps: int = 0, patience: int = 10, **kwargs):
         super().__init__(*args, **kwargs)
@@ -115,11 +116,11 @@ def train(algo_name: str, env_name: str, total_timesteps: int = None, total_epis
 
 
     if algo_name == "a2c":
-        n_envs = 64
+        n_envs = 16
     elif algo_name == "ppo":
-        n_envs = 32
+        n_envs = 16
     else:
-        n_envs = 1
+        n_envs = 16
     eval_n_envs = 5
     env = make_vec_env(
         gym_env_id,
