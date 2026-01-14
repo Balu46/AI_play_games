@@ -53,6 +53,7 @@ def visualize(
     logger.info("===== Starting visualization for environment: %s =====", env_name)
     for algo in algos_to_run:
         logger.info("===== Algorithm to run: %s =====", algo)
+    
         
         model_path = f"{env_name}/models/{algo}/best_model.zip"
         if not os.path.exists(model_path):
