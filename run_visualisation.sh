@@ -15,7 +15,7 @@ fi
 echo "--- Visualization Mode ---"
 echo "Usage: ./run_visualisation.sh [algo] [env]"
 echo "Available algorithms: ppo, a2c, dqn"
-echo "Available environments: lunar_lander, car_racing"
+echo "Available environments: lunar_lander, car_racing, cart_pole"
 echo ""
 
 ALGO=${1:-$DEFAULT_ALGO}
