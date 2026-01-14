@@ -1,13 +1,13 @@
 {
-    "learning_rate": 0.00038669773458219057,
-    "gamma": 0.934960382786731,
-    "net_arch": "tiny",
+    "learning_rate": 0.0004946016657771374,
+    "gamma": 0.9554415435628565,
+    "net_arch": "medium",
     "optimizer_class": "RMSprop",
-    "weight_decay": 0.00016030110754825758,
-    "activation_fn": "ReLU",
-    "ent_coef": 1.4814359907208346e-05,
-    "vf_coef": 0.4638745668312023,
-    "max_grad_norm": 0.9290319505538731,
-    "gae_lambda": 0.9133639714605961,
-    "n_steps": 20
+    "weight_decay": 5.340000694274957e-05,
+    "activation_fn": "Tanh",
+    "vf_coef": 0.6432393826557099,
+    "max_grad_norm": 0.926350572734064,
+    "ent_coef": 2.2617196569020847e-05,
+    "gae_lambda": 0.9680905634059256,
+    "n_steps": 1024
 }

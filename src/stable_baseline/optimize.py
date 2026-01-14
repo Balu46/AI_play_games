@@ -36,11 +36,11 @@ def objective(trial, args):
         hyperparams["exploration_final_eps"] = trial.suggest_float("exploration_final_eps", 0.01, 0.1)
 
     elif args.algo in ["ppo", "a2c"]:
-        hyperparams["ent_coef"] = trial.suggest_float("ent_coef", 1e-5, 0.05, log=True)
         hyperparams["vf_coef"] = trial.suggest_float("vf_coef", 0.2, 0.8)
         hyperparams["max_grad_norm"] = trial.suggest_float("max_grad_norm", 0.3, 1.0)
         
         if args.algo == "ppo":
+            hyperparams["ent_coef"] = trial.suggest_float("ent_coef", 1e-5, 0.05, log=True)
             hyperparams["gae_lambda"] = trial.suggest_float("gae_lambda", 0.9, 0.98)
             hyperparams["n_steps"] = trial.suggest_categorical("n_steps", [128, 256, 512, 1024, 2048])
             hyperparams["clip_range"] = trial.suggest_float("clip_range", 0.1, 0.2)
@@ -48,8 +48,9 @@ def objective(trial, args):
             hyperparams["batch_size"] = batch_size
             
         if args.algo == "a2c":
+            hyperparams["ent_coef"] = trial.suggest_float("ent_coef", 1e-5,  5e-4, log=True)
             hyperparams["gae_lambda"] = trial.suggest_float("gae_lambda", 0.9, 0.98)
-            hyperparams["n_steps"] = trial.suggest_categorical("n_steps", [5, 10, 20, 50, 100])
+            hyperparams["n_steps"] = trial.suggest_categorical("n_steps", [256, 512, 1024])
 
     try:
         # Run training
