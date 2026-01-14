@@ -77,8 +77,8 @@ def objective(trial, args):
         return best_reward
         
     except Exception as e:
-        logger.error("Trial failed: %s", e)
-        return float("-inf")
+        logger.error("Trial failed", exc_info=True)
+        raise
 
 def run_optimization(args):
     """
