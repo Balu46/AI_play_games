@@ -65,7 +65,7 @@
         \item \textbf{Preprocessing CarRacing:} grayscale + resize do 84x84 + frame stacking (4 klatki).
         \item \textbf{Normalizacja obrazu:} model normalizuje piksele na wejsciu.
         \item \textbf{Dostosowanie akcji:} dyskretyzacja sterowania tylko dla DQN w CarRacing.
-        \item \textbf{Wektoryzacja środowisk:} DQN(1 env), A2C (16 env), PPO (8 env).
+        \item \textbf{Wektoryzacja środowisk:} DQN(16 env), A2C (16 env), PPO (16 env).
     \end{itemize}
 \end{frame}
 
@@ -235,27 +235,26 @@
 \end{frame}
 
 \begin{frame}{Optymalizacja w Praktyce - LunarLander (Case Study)}
-    Obecnie Optuna optymalizuje z metryką hold-out (niezależne seedy), co redukuje przeuczenie do jednej ewaluacji.
+    Obecnie Optuna optymalizuje na środowisku test (niezależne seedy), co redukuje przeuczenie do jednej ewaluacji.
     \begin{itemize}
         \item \textbf{Cel optymalizacji:} holdout/mean\_reward.
-        \item \textbf{Budżet:} domyślnie 10 prób, 100k kroków na próbę (CLI); skrypt batch używa wartości per środowisko.
-        \item \textbf{Różne algorytmy:} osobne przestrzenie hiperparametrów dla DQN oraz PPO/A2C.
+        \item \textbf{Budżet:} domyślnie 10 prób, 100k kroków na próbę.
+        \item \textbf{Różne algorytmy:} osobne przestrzenie hiperparametrów dla każdego algorytmu.
     \end{itemize}
 \end{frame}
 
 \section{Trening i Ewaluacja}
 \begin{frame}{Trening Modeli}
     \begin{itemize}
-        \item \textbf{Budżet treningu:} konfigurowalny w \texttt{config.json} (aktualnie 5 000 000 kroków).
-        \item \textbf{Podział środowisk:} trening seed=0, ewaluacja seed=42, hold-out seed=1000.
-        \item \textbf{Optymalizacja:} Optuna (domyślnie 10 prób, 100k kroków na próbę w CLI; batch ma inne wartości).
+        \item \textbf{Budżet treningu:} konfigurowalny w \texttt{config.json} (aktualnie 1 000 000 kroków).
+        \item \textbf{Podział środowisk:} trening seed=0, ewaluacja seed=42, test seed=1000.
+        \item \textbf{Optymalizacja:} Optuna (domyślnie 10 prób, 100k kroków na próbę, inne dla każdej gry).
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Ewaluacja Modeli}
     \begin{itemize}
-        \item \textbf{Eval vs Hold-out:} eval służy do wyboru modelu, hold-out do kontroli generalizacji.
-        \item \textbf{Mean Reward:} główna metryka skuteczności (eval/mean\_reward, holdout/mean\_reward).
+        \item \textbf{Mean Reward:} główna metryka skuteczności (eval/mean\_reward, test/mean\_reward).
         \item \textbf{Episodic Length:} dodatkowa kontrola stabilności.
         \item \textbf{Ewaluacja deterministyczna:} stałe warunki porównań, 10 epizodów na ewaluację.
     \end{itemize}
@@ -371,8 +370,8 @@
         \hline
         \textbf{Środowisko} & \textbf{Parametry} \\ \hline
         CartPole & learning\_rate=0.0001793261, gamma=0.9534737990, net\_arch=medium, batch\_size=16, optimizer\_class=RMSprop, activation\_fn=Tanh, weight\_decay=0.0000216215, target\_update\_interval=1000, train\_freq=16, gradient\_steps=2, exploration\_fraction=0.4929325775, exploration\_final\_eps=0.0154726366 \\ \hline
-        LunarLander & learning\_rate=0.0082072604, gamma=0.9897746172, net\_arch=tiny, batch\_size=32, optimizer\_class=Adam, activation\_fn=ReLU, weight\_decay=0.0000032910, target\_update\_interval=1000, train\_freq=16, gradient\_steps=4, exploration\_fraction=0.3144025881, exploration\_final\_eps=0.0910880037 \\ \hline
-        CarRacing & learning\_rate=0.0000119164, gamma=0.9907858308, net\_arch=medium, batch\_size=512, optimizer\_class=AdamW, activation\_fn=ELU, weight\_decay=0.0002437466, target\_update\_interval=10000, train\_freq=16, gradient\_steps=4, exploration\_fraction=0.3792097857, exploration\_final\_eps=0.0774892213 \\ \hline
+        LunarLander & learning\_rate=0.0030895318, gamma=0.9942452945, net\_arch=tiny, batch\_size=256, optimizer\_class=Adam, activation\_fn=ReLU, weight\_decay=0.0000029136, target\_update\_interval=5000, train\_freq=16, gradient\_steps=8, exploration\_fraction=0.2565756418, exploration\_final\_eps=0.0214548086 \\ \hline
+        CarRacing & learning\_rate=0.0000190746, gamma=0.9964980011, net\_arch=small, batch\_size=256, optimizer\_class=AdamW, activation\_fn=Tanh, weight\_decay=0.0001018457, target\_update\_interval=5000, train\_freq=16, gradient\_steps=4, exploration\_fraction=0.4662493899, exploration\_final\_eps=0.0880439823 \\ \hline
         \end{tabular}
     \end{table}
 \end{frame}
@@ -384,9 +383,9 @@
         \begin{tabular}{|l|p{0.8\textwidth}|}
         \hline
         \textbf{Środowisko} & \textbf{Parametry} \\ \hline
-        CartPole & learning\_rate=0.0000156660, gamma=0.9740529111, net\_arch=small, optimizer\_class=Adam, activation\_fn=ReLU, weight\_decay=0.0000019809, ent\_coef=0.0000094432, vf\_coef=0.6361241406, max\_grad\_norm=2.6224568685, gae\_lambda=0.9582131557, n\_steps=10 \\ \hline
-        LunarLander & learning\_rate=0.0033341384, gamma=0.9278734325, net\_arch=tiny, optimizer\_class=AdamW, activation\_fn=ELU, weight\_decay=0.0000034479, ent\_coef=0.0001556883, vf\_coef=0.2646656918, max\_grad\_norm=1.8644929648, gae\_lambda=0.8640325836, n\_steps=100 \\ \hline
-        CarRacing & learning\_rate=0.0000491340, gamma=0.9783137151, net\_arch=medium, optimizer\_class=RMSprop, activation\_fn=ReLU, weight\_decay=0.0000288824, ent\_coef=0.0068872672, vf\_coef=0.6833129830, max\_grad\_norm=4.2683798523, gae\_lambda=0.9238527733, n\_steps=5 \\ \hline
+        CartPole & learning\_rate=0.0004946017, gamma=0.9554415436, net\_arch=medium, optimizer\_class=RMSprop, activation\_fn=Tanh, weight\_decay=0.0000534000, ent\_coef=0.0000226172, vf\_coef=0.6432393827, max\_grad\_norm=0.9263505727, gae\_lambda=0.9680905634, n\_steps=1024 \\ \hline
+        LunarLander & learning\_rate=0.0051225863, gamma=0.9997455014, net\_arch=medium, optimizer\_class=RMSprop, activation\_fn=Tanh, weight\_decay=0.0000000267, ent\_coef=0.0000950109, vf\_coef=0.6683089411, max\_grad\_norm=0.7851667075, gae\_lambda=0.9361844125, n\_steps=512 \\ \hline
+        CarRacing & learning\_rate=0.0001833084, gamma=0.9988692600, net\_arch=small, optimizer\_class=AdamW, activation\_fn=Tanh, weight\_decay=0.0007935114, ent\_coef=0.0001100083, vf\_coef=0.7279991641, max\_grad\_norm=0.3641113129, gae\_lambda=0.9781574680, n\_steps=50 \\ \hline
         \end{tabular}
     \end{table}
 \end{frame}
@@ -399,8 +398,8 @@
         \hline
         \textbf{Środowisko} & \textbf{Parametry} \\ \hline
         CartPole & learning\_rate=0.0011687224, gamma=0.9640504137, net\_arch=medium, batch\_size=512, optimizer\_class=RMSprop, activation\_fn=ReLU, weight\_decay=0.0000045619, ent\_coef=0.0000000143, vf\_coef=0.2781731853, max\_grad\_norm=2.6276624082, gae\_lambda=0.8823810760, n\_steps=256 \\ \hline
-        LunarLander & learning\_rate=0.0010775910, gamma=0.9000274166, net\_arch=medium, batch\_size=256, optimizer\_class=AdamW, activation\_fn=ELU, weight\_decay=0.0000041068, ent\_coef=0.0644108211, vf\_coef=0.2526720688, max\_grad\_norm=3.3079899133, gae\_lambda=0.8072870163, n\_steps=256 \\ \hline
-        CarRacing & learning\_rate=0.0001827441, gamma=0.9936572526, net\_arch=tiny, batch\_size=512, optimizer\_class=RMSprop, activation\_fn=ReLU, weight\_decay=0.0000273247, ent\_coef=0.0000911546, vf\_coef=0.6395007879, max\_grad\_norm=0.7945144926, gae\_lambda=0.9085099950, n\_steps=128 \\ \hline
+        LunarLander & learning\_rate=0.0006263061, gamma=0.9897638689, net\_arch=tiny, batch\_size=64, optimizer\_class=AdamW, activation\_fn=ReLU, weight\_decay=0.0000000287, ent\_coef=0.0000514425, vf\_coef=0.7284058948, max\_grad\_norm=0.4699947472, gae\_lambda=0.9753815924, n\_steps=1024, clip\_range=0.1958369398 \\ \hline
+        CarRacing & learning\_rate=0.0002487322, gamma=0.9862992164, net\_arch=tiny, batch\_size=64, optimizer\_class=RMSprop, activation\_fn=ReLU, weight\_decay=0.0000000505, ent\_coef=0.0000595936, vf\_coef=0.6120567114, max\_grad\_norm=0.8796216903, gae\_lambda=0.9709323978, n\_steps=1024, clip\_range=0.1825195801 \\ \hline
         \end{tabular}
     \end{table}
 \end{frame}
