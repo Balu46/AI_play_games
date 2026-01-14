@@ -101,7 +101,7 @@ def visualize(
                 score += float(reward[0])
                 done = bool(done[0])
 
-            output_path = f"{base_video_dir}/videos/{algo}_episode_{ep+1}.{output_format}"
+            output_path = f"{base_video_dir}/{algo}_episode_{ep+1}.{output_format}"
 
             if output_format == "mp4":
                 height, width, _ = frames[0].shape
