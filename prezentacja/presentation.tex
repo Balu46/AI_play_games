@@ -237,8 +237,8 @@
 \begin{frame}{Optymalizacja w Praktyce - LunarLander (Case Study)}
     Obecnie Optuna optymalizuje na środowisku test (niezależne seedy), co redukuje przeuczenie do jednej ewaluacji.
     \begin{itemize}
-        \item \textbf{Cel optymalizacji:} holdout/mean\_reward.
-        \item \textbf{Budżet:} domyślnie 10 prób, 100k kroków na próbę.
+        \item \textbf{Cel optymalizacji:} test/mean\_reward.
+        \item \textbf{Budżet:} domyślnie 60 prób, 300k kroków na próbę.
         \item \textbf{Różne algorytmy:} osobne przestrzenie hiperparametrów dla każdego algorytmu.
     \end{itemize}
 \end{frame}
@@ -248,7 +248,7 @@
     \begin{itemize}
         \item \textbf{Budżet treningu:} konfigurowalny w \texttt{config.json} (aktualnie 1 000 000 kroków).
         \item \textbf{Podział środowisk:} trening seed=0, ewaluacja seed=42, test seed=1000.
-        \item \textbf{Optymalizacja:} Optuna (domyślnie 10 prób, 100k kroków na próbę, inne dla każdej gry).
+        \item \textbf{Optymalizacja:} Optuna (domyślnie 40 prób, 150k kroków na próbę, inne dla każdej gry).
     \end{itemize}
 \end{frame}
 
@@ -407,7 +407,7 @@
 \begin{frame}{Wyniki Optymalizacji z Optuna}
     Wyniki zależą od środowiska i długości triali. Aktualnie optymalizacja:
     \begin{itemize}
-        \item wybiera parametry na podstawie \textbf{hold-out mean reward},
+        \item wybiera parametry na podstawie \textbf{test mean reward},
         \item używa 100k kroków na próbę w CLI (batch: env-specific),
         \item ogranicza ryzyko przeuczenia do jednego seeda.
     \end{itemize}
