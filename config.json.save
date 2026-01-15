@@ -1,8 +1,0 @@
-{
-    "game": "all",
-    "algorithms": [
-        "dqn"
-    ],
-    "total_timesteps": 50000,
-    "total_episodes": null
-}
