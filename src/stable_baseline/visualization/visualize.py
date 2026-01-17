@@ -1,3 +1,5 @@
+from datetime import datetime
+import json
 import gymnasium as gym
 import os
 import torch as T
@@ -33,6 +35,8 @@ def visualize(
     output_format: str = "mp4",  # "mp4" lub "gif"
     fps: int = 30
 ):
+    
+    
     if env_name not in ENV_MAP:
         raise ValueError(f"Unknown environment: {env_name}")
 
@@ -48,8 +52,23 @@ def visualize(
 
     base_video_dir = f"videos/{env_name}"
 
-    os.makedirs(f"{base_video_dir}", exist_ok=True)
+    os.makedirs(f"{base_video_dir}", exist_ok=True)    
+    
+    
+    json_path = os.path.join("videos", "episode_rewards.json")
+    run_id = env_name
 
+    if os.path.exists(json_path):
+        with open(json_path, "r") as f:
+            rewards_data = json.load(f)
+    else:
+        rewards_data = {
+            "environment": {}
+        }
+
+    rewards_data["environment"][run_id] = {}
+    
+    
     logger.info("===== Starting visualization for environment: %s =====", env_name)
     for algo in algos_to_run:
         logger.info("===== Algorithm to run: %s =====", algo)
@@ -101,8 +120,19 @@ def visualize(
                 score += float(reward[0])
                 done = bool(done[0])
 
-            output_path = f"{base_video_dir}/{algo}_episode_{ep+1}_reward_{score}.{output_format}"
+            output_path = f"{base_video_dir}/{algo}_episode_{ep+1}.{output_format}"
+            
+            rewards_data["environment"].setdefault(run_id, {})
+            rewards_data["environment"][run_id].setdefault(algo, [])    
 
+            rewards_data["environment"][run_id][algo].append({
+                "episode": ep + 1,
+                "reward": score
+            })
+
+            with open(json_path, "w") as f:
+                json.dump(rewards_data, f, indent=2)
+            
             if output_format == "mp4":
                 height, width, _ = frames[0].shape
                 writer = cv2.VideoWriter(

@@ -84,6 +84,13 @@ if __name__ == "__main__":
                 train(algo, game, total_timesteps=timesteps, total_episodes=episodes, hyperparams=hyperparams)
 
     elif args.mode == "visualize":
+        
+        json_path = os.path.join("videos", "episode_rewards.json")
+        
+        if os.path.exists(json_path):
+            with open(json_path, "r") as f:
+                pass
+        
         for game in games:
             if not game:
                 logger.error("Visualization requires --env (or config game)")

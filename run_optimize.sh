@@ -74,15 +74,15 @@ for env in "${TARGET_ENVS[@]}"; do
         case "$env" in
             cart_pole)
                 env_trials=40
-                env_timesteps=150000
+                env_timesteps=1500000
                 ;;
             lunar_lander)
                 env_trials=60
-                env_timesteps=300000
+                env_timesteps=3000000
                 ;;
             car_racing)
                 env_trials=100
-                env_timesteps=800000
+                env_timesteps=8000000
                 ;;
             *)
                 env_trials=40
